@@ -112,8 +112,9 @@
       <nav class="nav">
         <a href="/" class="btn btn-outline">上传</a>
         <a href="/gallery" class="btn btn-outline">我的图片库</a>
+        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/admin-center" class="btn btn-outline">管理中心</a>
         <a href="/api-management" class="btn btn-outline">API管理</a>
-        <a href="/storage-config" class="btn btn-outline">存储配置</a>
         <a href="/settings" class="btn btn-outline">系统设置</a>
         <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
         <a href="/logout" class="btn btn-outline">退出</a>
@@ -244,8 +245,7 @@
       const baseUrl = window.location.origin;
       document.getElementById('apiEndpoint').textContent = baseUrl + '/api/upload';
 
-      // 获取API状态和令牌列表
-      fetchApiStatus();
+      // 不在这里立即获取API状态，而是在认证检查成功后获取
       
       // 设置表单提交事件
       document.getElementById('createTokenForm').addEventListener('submit', function(e) {
@@ -320,47 +320,60 @@
       window.copyExistingToken = function(token) {
         copyToClipboard(token, '令牌已复制到剪贴板');
       };
-
-      // 暗色模式切换按钮
-      const darkModeToggle = document.getElementById('toggleDarkMode');
-      darkModeToggle.addEventListener('click', function() {
-        document.body.classList.toggle('dark');
-        // 保存模式偏好到localStorage
-        const isDark = document.body.classList.contains('dark');
-        localStorage.setItem('darkMode', isDark ? 'true' : 'false');
-        darkModeToggle.textContent = isDark ? '亮色模式' : '暗色模式';
-      });
-      
-      // 页面加载时检查暗色模式
-      const storedDarkMode = localStorage.getItem('darkMode');
-      if (storedDarkMode === 'true') {
-        document.body.classList.add('dark');
-        darkModeToggle.textContent = '亮色模式';
-      }
-    
     
     // 获取API状态和令牌列表
     function fetchApiStatus() {
-      fetch('/api/tokens')
-        .then(response => response.json())
+      console.log('开始获取API状态...');
+      
+      return fetch('/api/tokens')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return response.json();
+        })
         .then(data => {
+          console.log('API状态数据:', data);
           if (data.success) {
             // 更新API开关状态
-            document.getElementById('apiEnabledSwitch').checked = data.enabled;
-            document.getElementById('apiDisabledWarning').style.display = data.enabled ? 'none' : 'block';
+            const apiSwitch = document.getElementById('apiEnabledSwitch');
+            if (apiSwitch) {
+              // 暂时移除事件监听器，避免触发切换事件
+              const newSwitch = apiSwitch.cloneNode(true);
+              apiSwitch.parentNode.replaceChild(newSwitch, apiSwitch);
+              newSwitch.checked = data.enabled;
+              // 重新添加事件监听器
+              newSwitch.addEventListener('change', toggleApiStatus);
+              console.log('API开关状态设置为:', data.enabled);
+            }
+            
+            const warningDiv = document.getElementById('apiDisabledWarning');
+            if (warningDiv) {
+              warningDiv.style.display = data.enabled ? 'none' : 'block';
+            }
             
             // 更新默认格式选择
             const formatRadios = document.getElementsByName('defaultFormat');
             formatRadios.forEach(radio => {
-              radio.checked = radio.value === data.defaultFormat;
+              radio.checked = radio.value === (data.defaultFormat || 'original');
             });
+            console.log('默认格式设置为:', data.defaultFormat || 'original');
             
             // 更新令牌列表
-            renderTokenList(data.tokens);
+            renderTokenList(data.tokens || []);
+            console.log('令牌列表已更新，共', (data.tokens || []).length, '个令牌');
+            
+            return data;
+          } else {
+            console.error('API状态获取失败:', data.message);
+            showToast('获取API状态失败: ' + (data.message || '未知错误'), 'error');
+            throw new Error(data.message || '未知错误');
           }
         })
         .catch(error => {
           console.error('获取API状态失败:', error);
+          showToast('获取API状态失败，请刷新页面重试', 'error');
+          throw error;
         });
     }
     
@@ -369,37 +382,50 @@
       const tokenListElem = document.getElementById('tokenList');
       const noTokensMessage = document.getElementById('noTokensMessage');
       
-      if (tokens.length === 0) {
-        noTokensMessage.style.display = 'block';
+      console.log('渲染令牌列表，共', tokens ? tokens.length : 0, '个令牌');
+      
+      if (!tokenListElem) {
+        console.error('找不到tokenList元素');
         return;
       }
       
-      noTokensMessage.style.display = 'none';
+      // 完全清空令牌列表容器
       tokenListElem.innerHTML = '';
       
+      if (!tokens || tokens.length === 0) {
+        // 显示"暂无令牌"消息
+        tokenListElem.innerHTML = '<div style="text-align: center; padding: var(--spacing-md); color: var(--text-secondary);" id="noTokensMessage">暂无令牌</div>';
+        return;
+      }
+      
+      // 渲染所有令牌
       tokens.forEach(token => {
-        const createdDate = new Date(token.createdAt).toLocaleString();
-        const expiresDate = token.expiresAt ? new Date(token.expiresAt).toLocaleString() : '永不过期';
-        
-        const tokenHtml = `
-          <div class="token-item">
+        try {
+          const createdDate = new Date(token.createdAt).toLocaleString();
+          const expiresDate = token.expiresAt ? new Date(token.expiresAt).toLocaleString() : '永不过期';
+          
+          const tokenDiv = document.createElement('div');
+          tokenDiv.className = 'token-item';
+          tokenDiv.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
-              <h3 style="margin: 0;">${token.name}</h3>
-              <button class="btn btn-secondary delete-token-btn" data-token-id="${token.id}">删除</button>
+              <h3 style="margin: 0;">${escapeHtml(token.name || '未命名令牌')}</h3>
+              <button class="btn btn-secondary delete-token-btn" data-token-id="${escapeHtml(token.id)}">删除</button>
             </div>
-            <div class="token-container" onclick="copyExistingToken('${token.token}')" style="cursor: pointer;" title="点击复制令牌">${token.token}</div>
+            <div class="token-container" onclick="copyExistingToken('${escapeHtml(token.token)}')" style="cursor: pointer;" title="点击复制令牌">${escapeHtml(token.token)}</div>
             <div style="font-size: 0.9em; color: var(--text-secondary);">
               <div>创建时间: ${createdDate}</div>
               <div>过期时间: ${expiresDate}</div>
             </div>
-          </div>
-        `;
-        
-        tokenListElem.innerHTML += tokenHtml;
+          `;
+          
+          tokenListElem.appendChild(tokenDiv);
+        } catch (error) {
+          console.error('渲染令牌项目失败:', error, token);
+        }
       });
 
       // 添加删除按钮事件监听器
-      document.querySelectorAll('.delete-token-btn').forEach(btn => {
+      tokenListElem.querySelectorAll('.delete-token-btn').forEach(btn => {
         btn.addEventListener('click', function() {
           const tokenId = this.dataset.tokenId;
           if (confirm('确定要删除此令牌吗？此操作不可恢复。')) {
@@ -409,14 +435,23 @@
       });
     }
     
+    // HTML转义函数
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
     // 创建新令牌
     function createToken() {
       const tokenName = document.getElementById('tokenName').value.trim();
       
       if (!tokenName) {
-        alert('请输入令牌名称');
+        showToast('请输入令牌名称', 'error');
         return;
       }
+      
+      console.log('创建新令牌:', tokenName);
       
       fetch('/api/tokens', {
         method: 'POST',
@@ -427,46 +462,89 @@
           name: tokenName
         })
       })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then(data => {
+        console.log('创建令牌响应:', data);
         if (data.success) {
           // 显示新创建的令牌
-          document.getElementById('newTokenValue').textContent = data.token.token;
-          document.getElementById('newTokenInfo').style.display = 'block';
+          const newTokenValueElem = document.getElementById('newTokenValue');
+          const newTokenInfoElem = document.getElementById('newTokenInfo');
           
-          // 清空输入并重新加载令牌列表
-          document.getElementById('tokenName').value = '';
+          if (newTokenValueElem && newTokenInfoElem) {
+            newTokenValueElem.textContent = data.token.token;
+            newTokenInfoElem.style.display = 'block';
+          }
+          
+          // 清空输入
+          const tokenNameInput = document.getElementById('tokenName');
+          if (tokenNameInput) {
+            tokenNameInput.value = '';
+          }
+          
+          // 显示成功消息
+          showToast('令牌创建成功', 'success');
+          
+          // 立即重新加载令牌列表
           fetchApiStatus();
         } else {
-          alert('创建令牌失败: ' + (data.message || '未知错误'));
+          console.error('创建令牌失败:', data.message);
+          showToast('创建令牌失败: ' + (data.message || '未知错误'), 'error');
         }
       })
       .catch(error => {
         console.error('创建令牌请求失败:', error);
-        alert('创建令牌请求失败，请稍后再试');
+        showToast('创建令牌请求失败，请稍后再试', 'error');
       });
     }
     
     // 切换API状态
     function toggleApiStatus() {
+      console.log('切换API状态...');
+      
       fetch('/api/toggle', {
         method: 'POST'
       })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then(data => {
+        console.log('API状态切换响应:', data);
         if (data.success) {
           // 更新开关状态和警告消息
-          document.getElementById('apiEnabledSwitch').checked = data.enabled;
-          document.getElementById('apiDisabledWarning').style.display = data.enabled ? 'none' : 'block';
+          const apiSwitch = document.getElementById('apiEnabledSwitch');
+          const warningDiv = document.getElementById('apiDisabledWarning');
+          
+          if (apiSwitch) {
+            apiSwitch.checked = data.enabled;
+          }
+          
+          if (warningDiv) {
+            warningDiv.style.display = data.enabled ? 'none' : 'block';
+          }
+          
+          // 显示状态切换成功的提示
+          const statusText = data.enabled ? '已启用' : '已关闭';
+          showToast(`API ${statusText}`, 'success');
+          
+          console.log('API状态已切换为:', data.enabled);
         } else {
-          alert('切换API状态失败: ' + (data.message || '未知错误'));
+          console.error('切换API状态失败:', data.message);
+          showToast('切换API状态失败: ' + (data.message || '未知错误'), 'error');
           // 重置开关状态
           fetchApiStatus();
         }
       })
       .catch(error => {
         console.error('切换API状态请求失败:', error);
-        alert('切换API状态请求失败，请稍后再试');
+        showToast('切换API状态请求失败，请稍后再试', 'error');
         // 重置开关状态
         fetchApiStatus();
       });
@@ -501,21 +579,31 @@
     
     // 删除令牌
     function deleteToken(tokenId) {
+      console.log('删除令牌:', tokenId);
+      
       fetch(`/api/tokens/${tokenId}`, {
         method: 'DELETE'
       })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then(data => {
+        console.log('删除令牌响应:', data);
         if (data.success) {
-          // 重新加载令牌列表
+          showToast('令牌删除成功', 'success');
+          // 立即重新加载令牌列表
           fetchApiStatus();
         } else {
-          alert('删除令牌失败: ' + (data.message || '未知错误'));
+          console.error('删除令牌失败:', data.message);
+          showToast('删除令牌失败: ' + (data.message || '未知错误'), 'error');
         }
       })
       .catch(error => {
         console.error('删除令牌请求失败:', error);
-        alert('删除令牌请求失败，请稍后再试');
+        showToast('删除令牌请求失败，请稍后再试', 'error');
       });
     }
 
@@ -572,24 +660,33 @@
         // 如果系统未配置，跳转到设置页面
         if (!data.isConfigured) {
           window.location.href = '/setup';
-          return;
+          return false;
         }
         
         // 如果用户未认证，跳转到登录页面
         if (!data.isAuthenticated) {
           window.location.href = '/login';
-          return;
+          return false;
         }
+        
+        return true;
       } catch (error) {
         console.error('检查认证状态失败:', error);
         // 如果检查失败，也跳转到登录页面
         window.location.href = '/login';
+        return false;
       }
     }
 
-    // 在页面加载时首先检查认证状态
-    checkAuthStatus();
+    // 在页面加载时首先检查认证状态，然后获取API数据
+    checkAuthStatus().then(isAuthenticated => {
+      if (isAuthenticated) {
+        // 只有在认证成功后才获取API状态
+        fetchApiStatus();
+      }
+    });
   });
   </script>
+  <script src="/js/dark-mode.js"></script>
 </body>
 </html> 

@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTTPS链接测试</title>
+    <title>HTTPS链接测试 - 现代图床</title>
+    <link rel="stylesheet" href="/css/style.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
         .test-result { padding: 10px; margin: 10px 0; border-radius: 5px; }
         .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
         .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
@@ -13,6 +13,22 @@
     </style>
 </head>
 <body>
+    <header class="header">
+        <div class="container header-content">
+            <a href="/" class="logo">现代图床</a>
+            <nav class="nav">
+                <a href="/" class="btn btn-outline">首页</a>
+                <a href="/gallery" class="btn btn-outline">图片库</a>
+                <a href="/categories" class="btn btn-outline">分类管理</a>
+                <a href="/admin-center" class="btn btn-outline">管理中心</a>
+                <a href="/settings" class="btn btn-outline">系统设置</a>
+                <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
+                <a href="/logout" class="btn btn-outline">退出</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
     <h1>HTTPS链接测试页面</h1>
     
     <div class="test-result info">
@@ -80,6 +96,9 @@
                 resultDiv.innerHTML = '<div class="test-result error">请求失败：' + error.message + '</div>';
             }
         }
+
     </script>
+    <script src="/js/dark-mode.js"></script>
+    </main>
 </body>
 </html> 

@@ -690,9 +690,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
     
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       document.addEventListener('click', hideMenu);
-    }, 10);
+    });
   }
   
   // 手机端复制菜单
@@ -817,9 +817,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // 显示菜单动画
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       menu.classList.add('show');
-    }, 10);
+    });
   }
   
   // 辅助剪贴板函数

@@ -13,6 +13,8 @@
       <a href="/" class="logo">现代图床</a>
       <nav class="nav">
         <a href="/gallery" class="btn btn-outline">我的图片库</a>
+        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/admin-center" class="btn btn-outline">管理中心</a>
         <a href="/settings" class="btn btn-outline">系统设置</a>
         <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
         <a href="/logout" class="btn btn-outline">退出</a>
@@ -106,37 +108,13 @@
     </section>
   </main>
 
-  <script src="/js/main.js"></script>
+  <!-- Optimized script loading for better performance -->
+  <script src="/js/auth-check.js" async></script>
+  <script src="/js/main.js" defer></script>
+  <script src="/js/dark-mode.js" defer></script>
   <script>
-    // 检查认证状态
-    async function checkAuthStatus() {
-      try {
-        const response = await fetch('/api/auth-status');
-        const data = await response.json();
-        
-        // 如果系统未配置，跳转到设置页面
-        if (!data.isConfigured) {
-          window.location.href = '/setup';
-          return;
-        }
-        
-        // 如果用户未认证，跳转到登录页面
-        if (!data.isAuthenticated) {
-          window.location.href = '/login';
-          return;
-        }
-      } catch (error) {
-        console.error('检查认证状态失败:', error);
-        // 如果检查失败，也跳转到登录页面
-        window.location.href = '/login';
-      }
-    }
-
     // 添加格式选择同步功能
     document.addEventListener('DOMContentLoaded', function() {
-      // 首先检查认证状态
-      checkAuthStatus();
-      
       // 获取所有格式选项和隐藏的格式字段
       const formatRadios = document.querySelectorAll('input[name="format"][type="radio"]');
       const formatValue = document.getElementById('formatValue');

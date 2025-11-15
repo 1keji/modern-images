@@ -5,19 +5,29 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test-api": "node test-api.js",
-    "test-performance": "node test-sqlite-performance.js",
-    "test-auto-login": "node test-auto-login.js",
-    "test-settings": "node test-settings.js"
+    "dev": "NODE_ENV=development node server.js",
+    "pm2:start": "pm2 start ecosystem.config.js --only image-hosting --env production",
+    "pm2:dev": "pm2 start ecosystem.config.js --only image-hosting-dev --env development",
+    "pm2:stop": "pm2 stop image-hosting",
+    "pm2:restart": "pm2 restart image-hosting",
+    "pm2:logs": "pm2 logs image-hosting",
+    "pm2:status": "pm2 status",
+    "install-deps": "npm install",
+    "clean": "rm -rf node_modules package-lock.json && npm install"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.450.0",
-    "better-sqlite3": "^9.2.2",
+    "pg": "^8.11.3",
     "express": "^4.18.2",
+    "compression": "^1.7.4",
     "express-session": "^1.17.3",
+    "connect-redis": "^7.1.0",
+    "redis": "^4.6.0",
     "multer": "^1.4.5-lts.1",
     "session-file-store": "^1.5.0",
-    "sharp": "^0.32.2"
+    "sharp": "^0.32.2",
+    "dotenv": "^16.3.1",
+    "better-sqlite3": "^9.2.2"
   },
   "devDependencies": {
     "axios": "^1.6.0",

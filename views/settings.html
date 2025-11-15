@@ -14,6 +14,8 @@
       <nav class="nav">
         <a href="/" class="btn btn-outline">首页</a>
         <a href="/gallery" class="btn btn-outline">我的图片库</a>
+        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/admin-center" class="btn btn-outline">管理中心</a>
         <a href="/settings" class="btn btn-primary">系统设置</a>
         <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
         <a href="/logout" class="btn btn-outline">退出</a>
@@ -35,13 +37,29 @@
             <span class="nav-icon">🎨</span>
             图片质量设置
           </a>
-          <a href="#api-management" class="nav-item" data-section="api-management">
-            <span class="nav-icon">🔧</span>
-            API管理
+          <a href="#display-settings" class="nav-item" data-section="display-settings">
+            <span class="nav-icon">👁️</span>
+            显示设置
+          </a>
+          <a href="#image-domain" class="nav-item" data-section="image-domain">
+            <span class="nav-icon">🌐</span>
+            图片域名设置
+          </a>
+          <a href="#domain-security" class="nav-item" data-section="domain-security">
+            <span class="nav-icon">🔒</span>
+            域名安全设置
+          </a>
+          <a href="#category-management" class="nav-item" data-section="category-management">
+            <span class="nav-icon">🏷️</span>
+            分类管理
           </a>
           <a href="#storage-config" class="nav-item" data-section="storage-config">
             <span class="nav-icon">💾</span>
             存储配置
+          </a>
+          <a href="/admin-center" class="nav-item">
+            <span class="nav-icon">🎛️</span>
+            管理中心
           </a>
         </nav>
       </aside>
@@ -138,127 +156,439 @@
           </div>
         </section>
 
-        <!-- API管理部分 -->
-        <section id="api-management-section" class="settings-section">
+        <!-- 显示设置 -->
+        <section id="display-settings-section" class="settings-section">
           <div class="section-header">
-            <h2>API管理</h2>
-            <p class="section-description">管理API令牌和设置，方便与第三方工具集成</p>
+            <h2>显示设置</h2>
+            <p class="section-description">配置首页最近上传图片的显示行为</p>
+          </div>
+
+          <div class="config-content">
+            <form id="displaySettingsForm">
+              <!-- 显示最近上传图片的开关 -->
+              <div class="form-group">
+                <div class="toggle-group">
+                  <label for="showRecentUploads" class="toggle-label">
+                    <span class="toggle-title">显示最近上传的图片</span>
+                    <span class="toggle-desc">控制首页是否显示历史上传的图片。关闭后仅显示本次上传的图片，刷新页面后不再显示历史记录</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="showRecentUploads" name="showRecentUploads" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 说明信息 -->
+              <div class="config-section" style="margin-top: 1.5rem;">
+                <div class="info-box">
+                  <h4>功能说明</h4>
+                  <ul>
+                    <li>✅ <strong>开启时：</strong>首页下方会显示最近上传的图片列表，刷新页面后仍然显示</li>
+                    <li>⚠️ <strong>关闭时：</strong>仅显示本次上传的图片，刷新页面后历史图片不再显示</li>
+                    <li>💡 <strong>提示：</strong>关闭此选项可以让首页更加简洁，适合只想快速上传和复制链接的场景</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- 保存按钮 -->
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="saveDisplaySettingsBtn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  保存设置
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- 图片域名设置 -->
+        <section id="image-domain-section" class="settings-section">
+          <div class="section-header">
+            <h2>图片域名设置</h2>
+            <p class="section-description">配置独立的图片域名，增强网站安全性并支持CDN分发</p>
+          </div>
+
+          <div class="config-content">
+            <form id="imageDomainForm">
+              <!-- 启用独立图片域名 -->
+              <div class="form-group">
+                <div class="toggle-group">
+                  <label for="enableImageDomain" class="toggle-label">
+                    <span class="toggle-title">启用独立图片域名</span>
+                    <span class="toggle-desc">使用独立域名提供图片服务，与主站域名分离</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="enableImageDomain" name="enableImageDomain">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 图片域名配置 -->
+              <div id="imageDomainConfig" class="form-group domain-config" style="display: none;">
+                <label for="imageDomain" class="form-label">
+                  图片域名
+                  <span class="required">*</span>
+                </label>
+                <input type="text" id="imageDomain" name="imageDomain" class="form-control" 
+                       placeholder="例如: img.example.com" autocomplete="off">
+                <small class="form-hint">
+                  请输入完整的域名，不需要包含协议前缀（http://或https://）
+                </small>
+              </div>
+
+              <!-- 备用图片域名配置 -->
+              <div id="backupDomainsConfig" class="form-group domain-config" style="display: none;">
+                <label class="form-label">
+                  备用图片域名
+                  <span class="optional">（可选）</span>
+                </label>
+                <div id="backupDomainsList" class="backup-domains-list">
+                  <!-- 动态生成的备用域名输入框 -->
+                </div>
+                <button type="button" id="addBackupDomain" class="btn btn-sm btn-outline">
+                  + 添加备用域名
+                </button>
+                <small class="form-hint">
+                  备用域名可以访问原有图片，但不能访问管理界面，新上传的图片不使用这些域名
+                </small>
+              </div>
+
+              <!-- HTTPS配置 -->
+              <div id="httpsConfig" class="form-group" style="display: none;">
+                <div class="toggle-group">
+                  <label for="httpsOnly" class="toggle-label">
+                    <span class="toggle-title">强制HTTPS</span>
+                    <span class="toggle-desc">图片链接始终使用HTTPS协议，推荐开启</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="httpsOnly" name="httpsOnly" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 配置示例 -->
+              <div id="domainExample" class="config-example" style="display: none;">
+                <h4>配置说明</h4>
+                <div class="example-content">
+                  <p><strong>DNS配置：</strong></p>
+                  <ul>
+                    <li>为图片域名添加A记录或CNAME记录，指向您的服务器</li>
+                    <li>如使用CDN，请将图片域名指向CDN地址</li>
+                  </ul>
+                  
+                  <p><strong>Web服务器配置：</strong></p>
+                  <ul>
+                    <li>Nginx：为图片域名添加server块，proxy_pass到图床服务</li>
+                    <li>Apache：为图片域名添加VirtualHost配置</li>
+                  </ul>
+                  
+                  <p><strong>安全建议：</strong></p>
+                  <ul>
+                    <li>为图片域名配置SSL证书</li>
+                    <li>设置适当的CORS策略</li>
+                    <li>考虑使用CDN提高访问速度</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- 域名迁移选项 -->
+              <div id="urlMigrationSection" class="config-section" style="display: none;">
+                <h4>现有图片处理</h4>
+                <div class="migration-info">
+                  <div class="info-box info-box-info">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="16" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <div>
+                      <strong>域名配置原则：</strong>
+                      <ul>
+                        <li>✅ <strong>新上传的图片</strong>将自动使用当前配置的域名</li>
+                        <li>✅ <strong>现有图片</strong>保持原有的URL不变，确保已分享的链接继续有效</li>
+                        <li>⚠️ 只有在明确需要时才强制迁移现有图片的域名</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div class="migration-option">
+                    <h5>强制迁移现有图片（可选）</h5>
+                    <p class="migration-desc">
+                      如果您希望<strong>所有现有图片</strong>也使用新的域名配置，可以执行强制迁移。
+                      <br><strong>注意：</strong>此操作将覆盖所有现有图片的URL，可能会导致之前分享的链接失效。
+                    </p>
+                    
+                    <div class="warning-box">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                      <span>执行前请确保：新域名已正确配置并可访问</span>
+                    </div>
+                    
+                    <button type="button" id="migrateUrlsBtn" class="btn btn-warning">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10"></path>
+                        <path d="M3.51 15a9 9 0 0 0 14.85 3.36L23 14"></path>
+                      </svg>
+                      强制迁移所有图片到新域名
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 保存按钮 -->
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="saveImageDomainBtn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  保存设置
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- 域名安全设置 -->
+        <section id="domain-security-section" class="settings-section">
+          <div class="section-header">
+            <h2>域名安全设置</h2>
+            <p class="section-description">配置域名白名单，只允许指定域名访问网站，增强安全性</p>
+          </div>
+
+          <div class="config-content">
+            <form id="domainSecurityForm">
+              <!-- 启用域名安全验证 -->
+              <div class="form-group">
+                <div class="toggle-group">
+                  <label for="enableDomainSecurity" class="toggle-label">
+                    <span class="toggle-title">启用域名安全验证</span>
+                    <span class="toggle-desc">只允许白名单中的域名访问网站，拒绝其他域名请求</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="enableDomainSecurity" name="enableDomainSecurity">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 域名白名单配置 -->
+              <div id="domainSecurityConfig" class="form-group domain-config" style="display: none;">
+                <label for="allowedDomains" class="form-label">
+                  允许的域名列表
+                  <span class="required">*</span>
+                </label>
+                <div class="domain-list-container">
+                  <div id="domainList" class="domain-list">
+                    <!-- 域名条目将在这里动态添加 -->
+                  </div>
+                  <div class="add-domain-group">
+                    <input type="text" id="newDomain" class="form-control" 
+                           placeholder="例如: example.com 或 *.example.com（支持通配符）" autocomplete="off">
+                    <button type="button" id="addDomainBtn" class="btn btn-outline">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                      添加域名
+                    </button>
+                  </div>
+                </div>
+                <small class="form-hint">
+                  <strong>支持格式：</strong><br>
+                  • 精确域名：example.com<br>
+                  • 通配符子域名：*.example.com（匹配所有子域名）<br>
+                  • 本地开发：localhost、127.0.0.1<br>
+                  <strong>注意：</strong>启用后只有列表中的域名能访问网站<br>
+                  <strong>图片域名：</strong>如果启用了独立图片域名，图片域名会自动允许访问图片资源，无需添加到此列表
+                </small>
+              </div>
+
+              <!-- 重定向选项 -->
+              <div id="redirectConfig" class="form-group domain-config" style="display: none;">
+                <div class="toggle-group">
+                  <label for="enableRedirectToMain" class="toggle-label">
+                    <span class="toggle-title">自动重定向到主域名</span>
+                    <span class="toggle-desc">当访问非允许域名时，自动重定向到主域名而不是显示错误</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="enableRedirectToMain" name="enableRedirectToMain">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 主域名配置 -->
+              <div id="mainDomainConfig" class="form-group domain-config" style="display: none;">
+                <label for="mainDomain" class="form-label">
+                  主域名
+                  <span class="required">*</span>
+                </label>
+                <input type="text" id="mainDomain" name="mainDomain" class="form-control" 
+                       placeholder="例如: www.example.com" autocomplete="off">
+                <small class="form-hint">
+                  重定向的目标域名，必须在允许列表中
+                </small>
+              </div>
+
+              <div class="action-buttons">
+                <button type="button" id="testDomainSecurity" class="btn btn-secondary">测试当前域名</button>
+                <button type="submit" class="btn btn-primary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  保存设置
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- 域名安全状态 -->
+          <div class="section-header">
+            <h3>当前状态</h3>
+            <p class="section-description">查看域名安全验证的当前状态</p>
+          </div>
+
+          <div class="config-content">
+            <div class="status-cards">
+              <div class="status-card">
+                <div class="status-icon">🌐</div>
+                <div class="status-info">
+                  <h4>当前访问域名</h4>
+                  <p id="currentDomain">-</p>
+                </div>
+              </div>
+              <div class="status-card">
+                <div class="status-icon">🔒</div>
+                <div class="status-info">
+                  <h4>安全验证状态</h4>
+                  <p id="securityStatus">未启用</p>
+                </div>
+              </div>
+              <div class="status-card">
+                <div class="status-icon">📊</div>
+                <div class="status-info">
+                  <h4>允许域名数量</h4>
+                  <p id="allowedDomainsCount">0</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- 分类管理部分 -->
+        <section id="category-management-section" class="settings-section">
+          <div class="section-header">
+            <h2>分类管理</h2>
+            <p class="section-description">创建和管理图片分类</p>
           </div>
 
           <div class="settings-row">
             <div class="settings-col-main">
-              <!-- API状态设置 -->
               <div class="config-section">
                 <div class="config-header">
-                  <h3>API状态</h3>
+                  <h3>添加新分类</h3>
                 </div>
                 <div class="config-content">
-                  <div class="api-switch">
-                    <input class="form-check-input" type="checkbox" id="apiEnabledSwitch">
-                    <label class="form-check-label" for="apiEnabledSwitch">启用API</label>
-                  </div>
-                  
-                  <div id="apiDisabledWarning" style="display: none;" class="alert alert-warning">
-                    API功能当前已禁用，即使有有效的令牌也无法访问API。
-                  </div>
-
-                  <div class="format-radio-group">
-                    <h4>API上传图片格式设置</h4>
-                    <div class="radio-group">
-                      <div class="radio-item">
-                        <input type="radio" name="defaultFormat" value="original" id="format-original">
-                        <label for="format-original">保持原始格式</label>
-                      </div>
-                      <div class="radio-item">
-                        <input type="radio" name="defaultFormat" value="webp" id="format-webp">
-                        <label for="format-webp">转为WebP</label>
-                      </div>
-                      <div class="radio-item">
-                        <input type="radio" name="defaultFormat" value="avif" id="format-avif">
-                        <label for="format-avif">转为AVIF</label>
-                      </div>
+                  <form id="addCategoryForm" class="d-flex gap-2">
+                    <div class="form-group flex-grow-1">
+                      <input type="text" id="newCategoryName" placeholder="新分类名称" class="form-control">
                     </div>
-                    <p class="form-help">此设置将应用于所有通过API上传的图片。如果API请求中未指定format参数，将使用此默认设置。</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 创建新令牌 -->
-              <div class="config-section">
-                <div class="config-header">
-                  <h3>创建新令牌</h3>
-                </div>
-                <div class="config-content">
-                  <form id="createTokenForm">
-                    <div class="form-group">
-                      <label for="tokenName" class="form-label">令牌名称</label>
-                      <input type="text" class="form-control" id="tokenName" placeholder="例如：PicGo客户端" required>
-                      <div class="form-help">用于标识此令牌的用途</div>
-                    </div>
-                    <button type="submit" class="btn btn-primary">创建令牌</button>
+                    <button type="submit" id="addCategoryBtn" class="btn btn-primary">添加分类</button>
                   </form>
                   
-                  <div id="newTokenInfo" style="display: none;" class="alert alert-success">
-                    <p><strong>新令牌已创建!</strong> 请保存此令牌，它只会显示一次。</p>
-                    <div class="new-token-value" id="newTokenValue"></div>
-                    <button class="btn btn-secondary" onclick="copyNewToken()">复制令牌</button>
+                  <!-- 添加二级分类表单 -->
+                  <div class="subcategory-form-separator" style="margin: 15px 0; border-top: 1px solid var(--border-color);"></div>
+                  <form id="addSubcategoryForm" class="d-flex flex-column gap-2">
+                    <h4>添加二级分类</h4>
+                    <div class="form-group">
+                      <label for="parentCategorySelect" class="form-label">父分类</label>
+                      <select id="parentCategorySelect" class="form-select">
+                        <!-- 选项将由JavaScript动态填充 -->
+                      </select>
+                      <!-- 帮助信息由JS代码动态添加 -->
+                    </div>
+                    <div class="form-group">
+                      <label for="newSubcategoryName" class="form-label">二级分类名称</label>
+                      <input type="text" id="newSubcategoryName" placeholder="二级分类名称" class="form-control">
+                    </div>
+                    <div class="form-group">
+                      <button type="submit" id="addSubcategoryBtn" class="btn btn-primary">添加二级分类</button>
+                    </div>
+                  </form>
+                  
+                  <div class="alert alert-info" style="margin-top: 15px;">
+                    <strong>分类层级限制：</strong>系统最多只支持二级分类结构，不支持创建三级或更多级的分类嵌套。
                   </div>
                 </div>
               </div>
 
-              <!-- 现有令牌 -->
               <div class="config-section">
                 <div class="config-header">
-                  <h3>现有令牌</h3>
+                  <h3>默认分类设置</h3>
                 </div>
                 <div class="config-content">
-                  <div id="tokenList" class="token-list">
-                    <div id="noTokensMessage" class="no-data-message">暂无令牌</div>
+                  <div class="form-group">
+                    <label for="defaultCategory" class="form-label">进入分类管理页面时默认显示</label>
+                    <select id="defaultCategory" class="form-select">
+                      <option value="">不自动显示任何分类</option>
+                      <!-- 其他选项由JavaScript动态添加 -->
+                    </select>
+                    <div class="form-help">选择进入分类管理页面时默认展示的分类，或者不展示任何分类</div>
+                  </div>
+                  <div class="action-buttons">
+                    <button type="button" id="saveDefaultCategoryBtn" class="btn btn-primary">保存设置</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="config-section">
+                <div class="config-header">
+                  <h3>已有分类</h3>
+                </div>
+                <div class="config-content">
+                  <div id="categoryList" class="category-list">
+                    <!-- 分类列表由 JavaScript 渲染 -->
                   </div>
                 </div>
               </div>
             </div>
 
             <div class="settings-col-sidebar">
-              <!-- API使用说明 -->
               <div class="config-section">
                 <div class="config-header">
-                  <h3>API使用说明</h3>
+                  <h3>使用说明</h3>
                 </div>
                 <div class="config-content">
-                  <p>您可以通过API上传图片，方便与第三方工具集成。</p>
-                  
-                  <div class="info-box">
-                    <h4>PicGo设置</h4>
-                    <p>在PicGo中添加自定义图床：</p>
-                    <ul>
-                      <li><strong>上传地址</strong>: <code id="apiEndpoint"></code></li>
-                      <li><strong>请求方式</strong>: POST</li>
-                      <li><strong>自定义请求头</strong>: <code>x-api-token</code> 填入您的令牌</li>
-                      <li><strong>图片上传字段名</strong>: images</li>
-                      <li><strong>自定义URL部分</strong>: <code>picgo=true</code></li>
-                      <li><strong>返回值字段</strong>: result</li>
-                    </ul>
+                  <p>您可以在这里创建、重命名和删除图片分类。</p>
+                  <ul>
+                    <li>点击<strong>添加分类</strong>按钮创建新的分类</li>
+                    <li>使用<strong>编辑</strong>按钮修改分类名称</li>
+                    <li>使用<strong>删除</strong>按钮删除不需要的分类</li>
+                    <li>设置<strong>默认分类</strong>控制进入分类管理页面时自动展示的内容</li>
+                  </ul>
+                  <div class="alert alert-info">
+                    <strong>提示：</strong>在分类管理页面可以管理各分类下的图片。
                   </div>
-
-                  <h4>API端点</h4>
-                  <ul>
-                    <li><code>/api/upload</code> - 上传图片</li>
-                    <li>可选参数 <code>format</code>: 
-                      <ul>
-                        <li><code>original</code> - 保持原始格式</li>
-                        <li><code>webp</code> - 转换为WebP格式</li>
-                        <li><code>avif</code> - 转换为AVIF格式</li>
-                      </ul>
-                    </li>
-                  </ul>
-                  
-                  <h4>认证方式</h4>
-                  <p>使用以下任一方式提供令牌：</p>
-                  <ul>
-                    <li>请求头: <code>x-api-token: 您的令牌</code></li>
-                    <li>URL参数: <code>?token=您的令牌</code></li>
-                  </ul>
+                  <div class="mt-3">
+                    <a href="/categories" class="btn btn-outline">前往分类管理页面</a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -453,9 +783,7 @@
       currentSection = sectionName;
 
       // 根据当前选择的部分加载相应数据
-      if (sectionName === 'api-management') {
-        fetchApiStatus();
-      } else if (sectionName === 'storage-config') {
+      if (sectionName === 'storage-config') {
         loadStorageConfig();
       }
     }
@@ -505,194 +833,6 @@
       }
     }
 
-    // 复制新令牌
-    window.copyNewToken = function() {
-      const tokenValue = document.getElementById('newTokenValue').textContent;
-      copyToClipboard(tokenValue, '令牌已复制到剪贴板');
-    };
-
-    // 复制现有令牌
-    window.copyExistingToken = function(token) {
-      copyToClipboard(token, '令牌已复制到剪贴板');
-    };
-
-    // API管理相关函数
-    function fetchApiStatus() {
-      fetch('/api/tokens')
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            // 更新API开关状态
-            document.getElementById('apiEnabledSwitch').checked = data.enabled;
-            document.getElementById('apiDisabledWarning').style.display = data.enabled ? 'none' : 'block';
-            
-            // 更新默认格式选择
-            const formatRadios = document.getElementsByName('defaultFormat');
-            formatRadios.forEach(radio => {
-              radio.checked = radio.value === data.defaultFormat;
-            });
-            
-            // 更新令牌列表
-            renderTokenList(data.tokens);
-          }
-        })
-        .catch(error => {
-          console.error('获取API状态失败:', error);
-        });
-    }
-
-    function renderTokenList(tokens) {
-      const tokenListElem = document.getElementById('tokenList');
-      const noTokensMessage = document.getElementById('noTokensMessage');
-      
-      if (tokens.length === 0) {
-        noTokensMessage.style.display = 'block';
-        tokenListElem.innerHTML = '';
-        return;
-      }
-      
-      noTokensMessage.style.display = 'none';
-      tokenListElem.innerHTML = '';
-      
-      tokens.forEach(token => {
-        const createdDate = new Date(token.createdAt).toLocaleString();
-        const expiresDate = token.expiresAt ? new Date(token.expiresAt).toLocaleString() : '永不过期';
-        
-        const tokenDiv = document.createElement('div');
-        tokenDiv.className = 'token-item';
-        tokenDiv.innerHTML = `
-          <div class="token-header">
-            <h4>${token.name}</h4>
-            <button class="btn btn-danger btn-sm delete-token-btn" data-token-id="${token.id}">删除</button>
-          </div>
-          <div class="token-value" onclick="copyExistingToken('${token.token}')" title="点击复制令牌">${token.token}</div>
-          <div class="token-info">
-            <div>创建时间: ${createdDate}</div>
-            <div>过期时间: ${expiresDate}</div>
-          </div>
-        `;
-        
-        tokenListElem.appendChild(tokenDiv);
-      });
-
-      // 添加删除按钮事件监听器
-      document.querySelectorAll('.delete-token-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const tokenId = this.dataset.tokenId;
-          if (confirm('确定要删除此令牌吗？此操作不可恢复。')) {
-            deleteToken(tokenId);
-          }
-        });
-      });
-    }
-
-    function createToken() {
-      const tokenName = document.getElementById('tokenName').value.trim();
-      
-      if (!tokenName) {
-        showMessage('请输入令牌名称', 'error');
-        return;
-      }
-      
-      fetch('/api/tokens', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: tokenName
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // 显示新创建的令牌
-          document.getElementById('newTokenValue').textContent = data.token.token;
-          document.getElementById('newTokenInfo').style.display = 'block';
-          
-          // 清空输入并重新加载令牌列表
-          document.getElementById('tokenName').value = '';
-          fetchApiStatus();
-        } else {
-          showMessage('创建令牌失败: ' + (data.message || '未知错误'), 'error');
-        }
-      })
-      .catch(error => {
-        console.error('创建令牌请求失败:', error);
-        showMessage('创建令牌请求失败，请稍后再试', 'error');
-      });
-    }
-
-    function toggleApiStatus() {
-      fetch('/api/toggle', {
-        method: 'POST'
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // 更新开关状态和警告消息
-          document.getElementById('apiEnabledSwitch').checked = data.enabled;
-          document.getElementById('apiDisabledWarning').style.display = data.enabled ? 'none' : 'block';
-          showMessage('API状态已更新');
-        } else {
-          showMessage('切换API状态失败: ' + (data.message || '未知错误'), 'error');
-          // 重置开关状态
-          fetchApiStatus();
-        }
-      })
-      .catch(error => {
-        console.error('切换API状态请求失败:', error);
-        showMessage('切换API状态请求失败，请稍后再试', 'error');
-        // 重置开关状态
-        fetchApiStatus();
-      });
-    }
-
-    function updateDefaultFormat(format) {
-      fetch('/api/format', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ format })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showMessage('默认格式设置已更新');
-        } else {
-          showMessage('更新默认格式失败: ' + (data.message || '未知错误'), 'error');
-          // 重置格式选择
-          fetchApiStatus();
-        }
-      })
-      .catch(error => {
-        console.error('更新默认格式请求失败:', error);
-        showMessage('更新默认格式请求失败，请稍后再试', 'error');
-        // 重置格式选择
-        fetchApiStatus();
-      });
-    }
-
-    function deleteToken(tokenId) {
-      fetch(`/api/tokens/${tokenId}`, {
-        method: 'DELETE'
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showMessage('令牌删除成功');
-          // 重新加载令牌列表
-          fetchApiStatus();
-        } else {
-          showMessage('删除令牌失败: ' + (data.message || '未知错误'), 'error');
-        }
-      })
-      .catch(error => {
-        console.error('删除令牌请求失败:', error);
-        showMessage('删除令牌请求失败，请稍后再试', 'error');
-      });
-    }
 
     // 存储配置相关函数
     function loadStorageConfig() {
@@ -826,16 +966,18 @@
       // 加载当前设置
       loadCurrentSettings();
 
-      // 更新API端点URL
-      const baseUrl = window.location.origin;
-      document.getElementById('apiEndpoint').textContent = baseUrl + '/api/upload';
-
       // 添加侧边栏导航事件监听器
       document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', function(e) {
-          e.preventDefault();
           const sectionName = this.dataset.section;
-          switchSection(sectionName);
+          
+          // 如果有data-section属性，则在当前页面切换section
+          if (sectionName) {
+            e.preventDefault();
+            switchSection(sectionName);
+          }
+          // 如果没有data-section属性，则允许正常跳转
+          // 不调用preventDefault，让链接正常工作
         });
       });
 
@@ -861,22 +1003,6 @@
       // 保存质量设置
       document.getElementById('qualitySettingsForm').addEventListener('submit', saveQualitySettings);
 
-      // API管理事件监听器
-      document.getElementById('createTokenForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        createToken();
-      });
-      
-      document.getElementById('apiEnabledSwitch').addEventListener('change', function() {
-        toggleApiStatus();
-      });
-
-      document.getElementsByName('defaultFormat').forEach(radio => {
-        radio.addEventListener('change', function() {
-          updateDefaultFormat(this.value);
-        });
-      });
-
       // 存储配置事件监听器
       document.querySelectorAll('input[name="storageType"]').forEach(radio => {
         radio.addEventListener('change', function() {
@@ -891,22 +1017,8 @@
 
       document.getElementById('testR2Connection').addEventListener('click', testR2Connection);
 
-      // 暗色模式切换按钮
-      const darkModeToggle = document.getElementById('toggleDarkMode');
-      darkModeToggle.addEventListener('click', function() {
-        document.body.classList.toggle('dark');
-        // 保存模式偏好到localStorage
-        const isDark = document.body.classList.contains('dark');
-        localStorage.setItem('darkMode', isDark ? 'true' : 'false');
-        darkModeToggle.textContent = isDark ? '亮色模式' : '暗色模式';
-      });
-      
       // 页面加载时检查暗色模式
-      const storedDarkMode = localStorage.getItem('darkMode');
-      if (storedDarkMode === 'true') {
-        document.body.classList.add('dark');
-        darkModeToggle.textContent = '亮色模式';
-      }
+      checkDarkMode();
     });
 
     // 检查认证状态
@@ -1315,7 +1427,7 @@
       width: 100%;
     }
 
-    /* 复选框样式 */
+    /* 复选框样式 - 优化显示效果 */
     .checkbox-group {
       margin-top: 0.5rem;
     }
@@ -1324,44 +1436,61 @@
       display: flex;
       align-items: center;
       cursor: pointer;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: background-color 0.2s ease;
     }
 
+    .checkbox-label:hover {
+      background-color: var(--bg-secondary);
+    }
+
+    /* 优化普通复选框样式 */
     .checkbox-label input[type="checkbox"] {
-      margin-right: 0.5rem;
+      width: 20px;
+      height: 20px;
+      margin-right: 12px;
+      cursor: pointer;
+      accent-color: var(--primary-color);
+      flex-shrink: 0;
     }
 
-    /* 开关按钮样式 */
+    /* 开关按钮样式 - 增大尺寸,更醒目 */
     .form-check-input {
       margin-right: 0.75rem;
-      height: 20px;
-      width: 40px;
+      height: 26px;
+      width: 50px;
       cursor: pointer;
       appearance: none;
-      background-color: var(--gray-400);
-      border-radius: 20px;
+      background-color: #ccc;
+      border-radius: 26px;
       position: relative;
       transition: background-color 0.3s;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
     }
 
     .form-check-input:checked {
       background-color: var(--primary-color);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
     }
 
     .form-check-input:before {
       content: '';
       position: absolute;
-      height: 16px;
-      width: 16px;
+      height: 22px;
+      width: 22px;
       left: 2px;
-      bottom: 2px;
+      top: 2px;
       background-color: white;
       border-radius: 50%;
       transition: transform 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
     .form-check-input:checked:before {
-      transform: translateX(20px);
+      transform: translateX(24px);
     }
 
     .form-check-label {
@@ -1369,109 +1498,87 @@
       font-weight: 500;
     }
 
-    /* API管理样式 */
-    .api-switch {
-      margin-bottom: 1.5rem;
+    /* Toggle开关组优化 */
+    .toggle-group {
       display: flex;
       align-items: center;
-    }
-
-    .format-radio-group {
-      margin-top: 1rem;
-      padding: 1rem;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      background-color: var(--bg-primary);
-    }
-
-    .format-radio-group h4 {
-      margin: 0 0 1rem 0;
-      color: var(--text-primary);
-    }
-
-    .radio-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    .radio-item {
-      display: flex;
-      align-items: center;
-    }
-
-    .radio-item input[type="radio"] {
-      margin-right: 0.5rem;
-    }
-
-    /* 令牌相关样式 */
-    .token-list {
-      margin-top: 1rem;
-    }
-
-    .token-item {
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      background-color: var(--bg-primary);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .token-item:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    .token-header {
-      display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.75rem;
-    }
-
-    .token-header h4 {
-      margin: 0;
-      color: var(--text-primary);
-    }
-
-    .token-value {
-      background-color: var(--bg-secondary);
-      padding: 0.75rem;
-      border-radius: 6px;
-      font-family: monospace;
-      word-break: break-all;
-      cursor: pointer;
-      margin-bottom: 0.75rem;
-      border: 1px dashed var(--border-color);
+      padding: 16px;
+      background: var(--bg-primary);
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
       transition: border-color 0.2s ease;
     }
 
-    .token-value:hover {
+    .toggle-group:hover {
       border-color: var(--primary-color);
     }
 
-    .token-info {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
+    .toggle-label {
+      flex: 1;
+      margin-right: 16px;
     }
 
-    .new-token-value {
-      background-color: var(--bg-secondary);
-      border: 1px dashed var(--primary-color);
-      padding: 0.75rem;
-      margin: 0.75rem 0;
-      font-family: monospace;
-      border-radius: 6px;
-      word-break: break-all;
+    .toggle-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
     }
 
-    .no-data-message {
-      text-align: center;
-      padding: 2rem;
+    .toggle-desc {
+      font-size: 0.875rem;
       color: var(--text-secondary);
-      font-style: italic;
+      line-height: 1.5;
     }
+
+    .toggle {
+      display: inline-block;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .toggle input[type="checkbox"] {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .toggle-slider {
+      display: block;
+      width: 54px;
+      height: 28px;
+      background-color: #ccc;
+      border-radius: 28px;
+      position: relative;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background-color: var(--primary-color);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .toggle-slider:before {
+      content: '';
+      position: absolute;
+      height: 24px;
+      width: 24px;
+      left: 2px;
+      top: 2px;
+      background-color: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .toggle input:checked + .toggle-slider:before {
+      transform: translateX(26px);
+    }
+
 
     /* 存储配置样式 */
     .storage-option {
@@ -1674,13 +1781,11 @@
         flex-direction: column;
         gap: 0.5rem;
       }
-
-      .token-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-      }
     }
   </style>
+  <script src="/js/auth-check.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/dark-mode.js"></script>
+  <script src="/js/settings.js"></script>
 </body>
 </html> 

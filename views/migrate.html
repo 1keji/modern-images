@@ -3,106 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图片迁移工具 - 现代图床</title>
+    <title>数据库管理工具 - 现代图床</title>
     <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>图片迁移工具</h1>
-            <nav>
-                <a href="/" class="nav-link">上传</a>
-                <a href="/gallery" class="nav-link">图片库</a>
-                <a href="/settings" class="nav-link">系统设置</a>
-                <a href="/migrate" class="nav-link active">迁移工具</a>
-                <a href="/logout" class="nav-link">注销</a>
-            </nav>
-        </div>
-
-        <div class="main-content">
-            <div class="section">
-                <h2>🔄 图片数据迁移</h2>
-                <p>
-                    如果您发现原有的图片无法显示，可能是因为这些图片还没有被添加到新的图片记录系统中。
-                    使用下面的工具可以将所有现有图片迁移到SQLite数据库中。
-                </p>
-                
-                <div class="info-box">
-                    <h3>📋 迁移说明</h3>
-                    <ul>
-                        <li>此工具会扫描 uploads 目录中的所有图片文件</li>
-                        <li>只会添加未在SQLite数据库中记录的图片</li>
-                        <li>不会影响现有的图片记录</li>
-                        <li>操作完成后所有图片都将正常显示</li>
-                        <li>建议在低峰期执行此操作</li>
-                    </ul>
-                </div>
-
-                <div class="action-section">
-                    <button id="migrateBtn" class="btn btn-primary" onclick="startMigration()">
-                        开始迁移图片
-                    </button>
-                    <div id="migrationStatus" class="status-message" style="display: none;"></div>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2>📊 系统状态</h2>
-                <div id="systemStatus" class="status-grid">
-                    <div class="status-item">
-                        <span class="status-label">SQLite数据库记录:</span>
-                        <span id="dbCount" class="status-value">加载中...</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">文件系统图片:</span>
-                        <span id="fsCount" class="status-value">加载中...</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">需要迁移:</span>
-                        <span id="needMigration" class="status-value">加载中...</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">数据库状态:</span>
-                        <span id="dbStatus" class="status-value">加载中...</span>
-                    </div>
-                </div>
-                <button id="refreshStatusBtn" class="btn btn-secondary" onclick="loadSystemStatus()">
-                    刷新状态
-                </button>
-            </div>
-
-            <div class="section">
-                <h2>💾 数据库管理</h2>
-                <p>
-                    SQLite数据库管理工具，用于备份、导入和维护图片数据。
-                </p>
-                
-                <div class="info-box">
-                    <h3>🛠️ 数据库功能</h3>
-                    <ul>
-                        <li><strong>备份数据库:</strong> 将SQLite数据导出为JSON文件备份</li>
-                        <li><strong>导入JSON:</strong> 从现有的images.json文件导入数据</li>
-                        <li><strong>数据库状态:</strong> 查看详细的数据库连接和统计信息</li>
-                        <li>所有操作都是安全的，不会丢失现有数据</li>
-                    </ul>
-                </div>
-
-                <div class="action-section">
-                    <button id="backupBtn" class="btn btn-secondary" onclick="backupDatabase()">
-                        📁 备份数据库
-                    </button>
-                    <button id="importBtn" class="btn btn-secondary" onclick="importJsonData()">
-                        📥 导入JSON数据
-                    </button>
-                    <button id="dbStatusBtn" class="btn btn-secondary" onclick="loadDatabaseStatus()">
-                        📋 数据库详情
-                    </button>
-                    <div id="databaseStatus" class="status-message" style="display: none;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <style>
         .section {
             background: var(--bg-secondary);
@@ -134,10 +36,102 @@
             margin-bottom: 8px;
             color: var(--text-secondary);
         }
+        
+        /* 添加与Redis管理页面一致的样式 */
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+        }
 
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .btn-outline.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        /* 暗色模式下的样式调整 */
+        body.dark .section {
+            background: var(--bg-secondary);
+            border-color: var(--border-color);
+        }
+        
+        body.dark .info-box {
+            background: var(--bg-primary);
+        }
+        
+        body.dark .status-message.success {
+            background: rgba(40, 167, 69, 0.2);
+            color: #8cf98c;
+            border-color: rgba(40, 167, 69, 0.4);
+        }
+        
+        body.dark .status-message.error {
+            background: rgba(220, 53, 69, 0.2);
+            color: #f9a8a8;
+            border-color: rgba(220, 53, 69, 0.4);
+        }
+        
+        body.dark .status-message.info {
+            background: rgba(23, 162, 184, 0.2);
+            color: #a8e5f9;
+            border-color: rgba(23, 162, 184, 0.4);
+        }
+        
+        body.dark .status-message.warning {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffe999;
+            border-color: rgba(255, 193, 7, 0.4);
+        }
+        
+        /* 添加之前删除的样式 */
         .action-section {
             margin-top: 24px;
             text-align: center;
+        }
+
+        .upload-section {
+            margin-bottom: 20px;
+        }
+
+        .file-upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            background: var(--bg-primary);
+            transition: border-color 0.3s ease;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--primary-color);
+        }
+
+        .selected-file {
+            margin-top: 12px;
+            padding: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            display: none;
+        }
+
+        .selected-file.show {
+            display: block;
         }
 
         .status-message {
@@ -163,6 +157,12 @@
             background: #e6f3ff;
             color: #2c5aa0;
             border: 1px solid #b3d9ff;
+        }
+
+        .status-message.warning {
+            background: #fff8e1;
+            color: #8a6914;
+            border: 1px solid #ffecb3;
         }
 
         .status-grid {
@@ -192,44 +192,299 @@
             color: var(--primary-color);
         }
 
-        .btn {
-            padding: 12px 24px;
-            border: none;
+        .backup-section,
+        .restore-section,
+        .auto-backup-section,
+        .other-actions {
+            margin: 20px 0;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-primary);
+        }
+
+        .backup-section h4,
+        .restore-section h4,
+        .auto-backup-section h4,
+        .other-actions h4 {
+            margin: 0 0 12px 0;
+            color: var(--primary-color);
+            font-size: 16px;
+        }
+
+        .restore-options {
+            display: grid;
+            gap: 16px;
+        }
+
+        .server-restore,
+        .upload-restore {
+            padding: 12px;
+            border: 1px solid var(--border-color);
             border-radius: 6px;
-            font-size: 14px;
+            background: var(--bg-secondary);
+        }
+
+        .server-restore label,
+        .upload-restore label {
+            display: block;
+            margin-bottom: 8px;
             font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin: 0 8px;
+            color: var(--text-primary);
         }
 
-        .btn-primary {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-hover);
-        }
-
-        .btn-secondary {
+        .form-select,
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
             background: var(--bg-primary);
             color: var(--text-primary);
-            border: 1px solid var(--border-color);
+            margin-bottom: 10px;
         }
 
-        .btn-secondary:hover {
-            background: var(--border-color);
+        .form-select:focus,
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
         }
 
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+        .auto-backup-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .auto-backup-controls label {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .auto-backup-controls input {
+            width: 100px;
+        }
+
+        @media (max-width: 768px) {
+            .restore-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .auto-backup-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .auto-backup-controls input {
+                width: 100%;
+            }
         }
     </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container header-content">
+            <a href="/" class="logo">现代图床</a>
+            <nav class="nav">
+                <a href="/" class="btn btn-outline">上传</a>
+                <a href="/gallery" class="btn btn-outline">图片库</a>
+                <a href="/categories" class="btn btn-outline">分类管理</a>
+                <a href="/admin-center" class="btn btn-outline">管理中心</a>
+                <a href="/migrate" class="btn btn-outline active">数据管理</a>
+                <a href="/settings" class="btn btn-outline">系统设置</a>
+                <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
+                <a href="/logout" class="btn btn-outline">退出</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="section">
+                <h2>🔄 图片数据迁移</h2>
+                <p>
+                    如果您发现原有的图片无法显示，可能是因为这些图片还没有被添加到 PostgreSQL 数据库中。
+                    使用下面的工具可以将所有现有图片迁移到 PostgreSQL 数据库中。
+                </p>
+                
+                <div class="info-box">
+                    <h3>📋 迁移说明</h3>
+                    <ul>
+                        <li>此工具会扫描 uploads 目录中的所有图片文件</li>
+                        <li>只会添加未在 PostgreSQL 数据库中记录的图片</li>
+                        <li>不会影响现有的图片记录</li>
+                        <li>操作完成后所有图片都将正常显示</li>
+                        <li>建议在低峰期执行此操作</li>
+                    </ul>
+                </div>
+
+                <div class="action-section">
+                    <button id="migrateBtn" class="btn btn-primary" onclick="startMigration()">
+                        开始迁移图片
+                    </button>
+                    <div id="migrationStatus" class="status-message" style="display: none;"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📊 系统状态</h2>
+                <div id="systemStatus" class="status-grid">
+                    <div class="status-item">
+                        <span class="status-label">PostgreSQL 数据库记录:</span>
+                        <span id="dbCount" class="status-value">加载中...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">文件系统图片:</span>
+                        <span id="fsCount" class="status-value">加载中...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">需要迁移:</span>
+                        <span id="needMigration" class="status-value">加载中...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">数据库状态:</span>
+                        <span id="dbStatus" class="status-value">加载中...</span>
+                    </div>
+                </div>
+                <button id="refreshStatusBtn" class="btn btn-secondary" onclick="loadSystemStatus()">
+                    刷新状态
+                </button>
+            </div>
+
+            <div class="section">
+                <h2>💾 PostgreSQL 数据库管理</h2>
+                <p>
+                    PostgreSQL 数据库管理工具，用于SQL格式备份、恢复和维护图片数据。
+                </p>
+                
+                <div class="info-box">
+                    <h3>🛠️ 数据库功能</h3>
+                    <ul>
+                        <li><strong>SQL备份:</strong> 将 PostgreSQL 数据导出为 SQL 文件备份</li>
+                        <li><strong>SQL恢复:</strong> 从服务器上的 SQL 备份文件恢复数据</li>
+                        <li><strong>上传恢复:</strong> 上传本地 SQL 文件进行数据恢复</li>
+                        <li><strong>自动备份:</strong> 设置定时自动备份，确保数据安全</li>
+                        <li><strong>备份管理:</strong> 查看和管理所有备份文件</li>
+                        <li><strong>兼容支持:</strong> 仍支持 JSON 格式的导入导出</li>
+                        <li>所有操作都是安全的，支持事务回滚</li>
+                    </ul>
+                </div>
+
+                <div class="action-section">
+                    <div class="backup-section">
+                        <h4>📁 数据备份</h4>
+                        <button id="backupSqlBtn" class="btn btn-primary" onclick="backupDatabaseSql()">
+                            💾 创建 SQL 备份
+                        </button>
+                        <button id="backupJsonBtn" class="btn btn-secondary" onclick="backupDatabaseJson()">
+                            📄 创建 JSON 备份 (兼容)
+                        </button>
+                    </div>
+
+                    <div class="restore-section">
+                        <h4>🔄 数据恢复</h4>
+                        <div class="restore-options">
+                            <div class="server-restore">
+                                <label for="backupFileSelect">从服务器备份恢复:</label>
+                                <select id="backupFileSelect" class="form-select">
+                                    <option value="">选择备份文件...</option>
+                                </select>
+                                <button id="restoreBtn" class="btn btn-warning" onclick="restoreFromServerSql()" disabled>
+                                    🔄 恢复数据
+                                </button>
+                            </div>
+                            
+                            <div class="upload-restore">
+                                <label>上传本地SQL文件恢复:</label>
+                                <input type="file" id="sqlRestoreInput" accept=".sql" style="display: none;" onchange="handleSqlFileSelect(event)">
+                                <button id="selectSqlBtn" class="btn btn-secondary" onclick="document.getElementById('sqlRestoreInput').click()">
+                                    📂 选择 SQL 文件
+                                </button>
+                                <div id="selectedSqlFileName" class="selected-file"></div>
+                                <button id="uploadRestoreBtn" class="btn btn-warning" onclick="uploadAndRestoreSql()" disabled>
+                                    📤 上传并恢复
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="auto-backup-section">
+                        <h4>⏰ 自动备份设置</h4>
+                        <div class="auto-backup-controls">
+                            <label for="backupInterval">备份间隔 (小时):</label>
+                            <input type="number" id="backupInterval" min="1" max="168" value="24" class="form-input">
+                            <button id="setAutoBackupBtn" class="btn btn-success" onclick="setAutoBackup()">
+                                ⚙️ 设置自动备份
+                            </button>
+                            <button id="disableAutoBackupBtn" class="btn btn-danger" onclick="disableAutoBackup()">
+                                🚫 禁用自动备份
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="other-actions">
+                        <h4>🔧 其他操作</h4>
+                        <button id="refreshBackupsBtn" class="btn btn-secondary" onclick="loadBackupFiles()">
+                            🔄 刷新备份列表
+                        </button>
+                        <button id="importJsonBtn" class="btn btn-secondary" onclick="importJsonData()">
+                            📥 导入 JSON 数据 (兼容)
+                        </button>
+                        <button id="dbStatusBtn" class="btn btn-secondary" onclick="loadDatabaseStatus()">
+                            📋 数据库详情
+                        </button>
+                    </div>
+
+                    <div id="databaseStatus" class="status-message" style="display: none;"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🔄 SQLite 数据导入</h2>
+                <p>
+                    从旧的 SQLite 数据库导入数据到当前的 PostgreSQL 数据库中。支持从 SQLite 数据库文件、JSON 备份文件或上传的文件导入。
+                </p>
+                
+                <div class="info-box">
+                    <h3>📋 SQLite 导入说明</h3>
+                    <ul>
+                        <li><strong>自动检测:</strong> 系统会自动检测并导入现有的 SQLite 数据库文件</li>
+                        <li><strong>JSON 导入:</strong> 支持从 SQLite 导出的 JSON 备份文件导入</li>
+                        <li><strong>文件上传:</strong> 支持上传 SQLite 数据库文件(.db) 或 JSON 备份文件(.json)</li>
+                        <li><strong>重复处理:</strong> 相同路径的图片记录不会重复导入</li>
+                        <li><strong>数据完整性:</strong> 导入过程中会验证数据完整性</li>
+                        <li><strong>事务安全:</strong> 导入失败时会自动回滚，确保数据安全</li>
+                    </ul>
+                </div>
+
+                <div class="action-section">
+                    <div class="upload-section">
+                        <div class="file-upload-area">
+                            <input type="file" id="sqliteFileInput" accept=".db,.json" style="display: none;" onchange="handleFileSelect(event)">
+                            <button id="selectFileBtn" class="btn btn-secondary" onclick="document.getElementById('sqliteFileInput').click()">
+                                📂 选择 SQLite 文件
+                            </button>
+                            <div id="selectedFileName" class="selected-file"></div>
+                        </div>
+                    </div>
+                    
+                    <button id="autoImportBtn" class="btn btn-primary" onclick="autoImportSqlite()">
+                        🔍 自动检测并导入
+                    </button>
+                    <button id="uploadImportBtn" class="btn btn-primary" onclick="uploadAndImportSqlite()" disabled>
+                        📤 上传并导入选择的文件
+                    </button>
+                    <div id="sqliteImportStatus" class="status-message" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         let systemData = null;
+        let selectedFile = null;
+        let selectedSqlFile = null;
 
         async function loadSystemStatus() {
             try {
@@ -284,9 +539,9 @@
                 if (result.success) {
                     showMessage(result.message, 'success');
                     // 刷新系统状态
-                    setTimeout(() => {
+                    requestAnimationFrame(() => {
                         loadSystemStatus();
-                    }, 1000);
+                    });
                 } else {
                     showMessage('迁移失败: ' + result.message, 'error');
                 }
@@ -306,10 +561,9 @@
             statusDiv.style.display = 'block';
         }
 
-        // 备份数据库
-        async function backupDatabase() {
-            const btn = document.getElementById('backupBtn');
-            const statusDiv = document.getElementById('databaseStatus');
+        // SQL备份数据库
+        async function backupDatabaseSql() {
+            const btn = document.getElementById('backupSqlBtn');
             
             btn.disabled = true;
             btn.textContent = '正在备份...';
@@ -319,7 +573,42 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    body: JSON.stringify({ format: 'sql' })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showDatabaseMessage(result.message, 'success');
+                    // 刷新备份文件列表
+                    requestAnimationFrame(loadBackupFiles);
+                } else {
+                    showDatabaseMessage('SQL备份失败: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('SQL备份失败:', error);
+                showDatabaseMessage('SQL备份失败: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '💾 创建 SQL 备份';
+            }
+        }
+
+        // JSON备份数据库（兼容）
+        async function backupDatabaseJson() {
+            const btn = document.getElementById('backupJsonBtn');
+            
+            btn.disabled = true;
+            btn.textContent = '正在备份...';
+            
+            try {
+                const response = await fetch('/api/backup-database', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ format: 'json' })
                 });
                 
                 const result = await response.json();
@@ -327,23 +616,253 @@
                 if (result.success) {
                     showDatabaseMessage(result.message, 'success');
                 } else {
-                    showDatabaseMessage('备份失败: ' + result.message, 'error');
+                    showDatabaseMessage('JSON备份失败: ' + result.message, 'error');
                 }
             } catch (error) {
-                console.error('备份失败:', error);
-                showDatabaseMessage('备份失败: ' + error.message, 'error');
+                console.error('JSON备份失败:', error);
+                showDatabaseMessage('JSON备份失败: ' + error.message, 'error');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '📁 备份数据库';
+                btn.textContent = '📄 创建 JSON 备份 (兼容)';
             }
         }
 
-        // 导入JSON数据
-        async function importJsonData() {
-            const btn = document.getElementById('importBtn');
-            const statusDiv = document.getElementById('databaseStatus');
+        // 加载备份文件列表
+        async function loadBackupFiles() {
+            try {
+                const response = await fetch('/api/backup-files');
+                const result = await response.json();
+                
+                const select = document.getElementById('backupFileSelect');
+                const restoreBtn = document.getElementById('restoreBtn');
+                
+                // 清空选项
+                select.innerHTML = '<option value="">选择备份文件...</option>';
+                
+                if (result.success && result.files.length > 0) {
+                    result.files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file.name;
+                        option.textContent = `${file.name} (${(file.size / 1024).toFixed(1)}KB - ${file.created_readable})`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    const option = document.createElement('option');
+                    option.textContent = '暂无备份文件';
+                    option.disabled = true;
+                    select.appendChild(option);
+                }
+                
+                // 监听选择变化
+                select.onchange = function() {
+                    restoreBtn.disabled = !this.value;
+                };
+                
+            } catch (error) {
+                console.error('加载备份文件失败:', error);
+                showDatabaseMessage('加载备份文件失败: ' + error.message, 'error');
+            }
+        }
+
+        // 从服务器SQL文件恢复
+        async function restoreFromServerSql() {
+            const select = document.getElementById('backupFileSelect');
+            const btn = document.getElementById('restoreBtn');
+            const filename = select.value;
             
-            if (!confirm('确定要导入JSON数据吗？这会将images.json中的数据添加到SQLite数据库中。')) {
+            if (!filename) {
+                showDatabaseMessage('请先选择要恢复的备份文件', 'warning');
+                return;
+            }
+            
+            if (!confirm(`确定要从备份文件 "${filename}" 恢复数据吗？\n注意：这会将SQL文件中的数据添加到当前数据库中。`)) {
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = '正在恢复...';
+            
+            try {
+                const response = await fetch('/api/restore-from-sql', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ filename })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showDatabaseMessage(result.message, 'success');
+                    // 刷新系统状态
+                    requestAnimationFrame(() => {
+                        loadSystemStatus();
+                    });
+                } else {
+                    showDatabaseMessage('恢复失败: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('恢复失败:', error);
+                showDatabaseMessage('恢复失败: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔄 恢复数据';
+            }
+        }
+
+        // SQL文件选择处理
+        function handleSqlFileSelect(event) {
+            const file = event.target.files[0];
+            const fileNameDiv = document.getElementById('selectedSqlFileName');
+            const uploadBtn = document.getElementById('uploadRestoreBtn');
+            
+            if (file) {
+                selectedSqlFile = file;
+                fileNameDiv.textContent = `已选择: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                fileNameDiv.classList.add('show');
+                uploadBtn.disabled = false;
+                
+                // 验证文件类型
+                const fileExt = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+                if (fileExt !== '.sql') {
+                    showDatabaseMessage('警告: 请选择 .sql 文件', 'warning');
+                }
+            } else {
+                selectedSqlFile = null;
+                fileNameDiv.classList.remove('show');
+                uploadBtn.disabled = true;
+            }
+        }
+
+        // 上传并恢复SQL文件
+        async function uploadAndRestoreSql() {
+            if (!selectedSqlFile) {
+                showDatabaseMessage('请先选择一个SQL文件', 'warning');
+                return;
+            }
+            
+            if (!confirm(`确定要上传并恢复 "${selectedSqlFile.name}" 吗？\n注意：这会将SQL文件中的数据添加到当前数据库中。`)) {
+                return;
+            }
+            
+            const btn = document.getElementById('uploadRestoreBtn');
+            btn.disabled = true;
+            btn.textContent = '上传恢复中...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('sqlFile', selectedSqlFile);
+                
+                const response = await fetch('/api/upload-sql-restore', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showDatabaseMessage(result.message, 'success');
+                    // 清除选择的文件
+                    selectedSqlFile = null;
+                    document.getElementById('selectedSqlFileName').classList.remove('show');
+                    document.getElementById('sqlRestoreInput').value = '';
+                    // 刷新系统状态
+                    requestAnimationFrame(() => {
+                        loadSystemStatus();
+                    });
+                } else {
+                    showDatabaseMessage('上传恢复失败: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('上传恢复失败:', error);
+                showDatabaseMessage('上传恢复失败: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📤 上传并恢复';
+            }
+        }
+
+        // 设置自动备份
+        async function setAutoBackup() {
+            const input = document.getElementById('backupInterval');
+            const btn = document.getElementById('setAutoBackupBtn');
+            const intervalHours = parseInt(input.value);
+            
+            if (!intervalHours || intervalHours < 1 || intervalHours > 168) {
+                showDatabaseMessage('请输入有效的备份间隔时间 (1-168小时)', 'warning');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = '设置中...';
+            
+            try {
+                const response = await fetch('/api/auto-backup-settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ intervalHours })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showDatabaseMessage(result.message, 'success');
+                } else {
+                    showDatabaseMessage('设置自动备份失败: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('设置自动备份失败:', error);
+                showDatabaseMessage('设置自动备份失败: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '⚙️ 设置自动备份';
+            }
+        }
+
+        // 禁用自动备份
+        async function disableAutoBackup() {
+            const btn = document.getElementById('disableAutoBackupBtn');
+            
+            if (!confirm('确定要禁用自动备份吗？')) {
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = '禁用中...';
+            
+            try {
+                const response = await fetch('/api/auto-backup-settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ intervalHours: 0 })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showDatabaseMessage(result.message, 'success');
+                } else {
+                    showDatabaseMessage('禁用自动备份失败: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('禁用自动备份失败:', error);
+                showDatabaseMessage('禁用自动备份失败: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚫 禁用自动备份';
+            }
+        }
+
+        // 导入JSON数据（兼容）
+        async function importJsonData() {
+            const btn = document.getElementById('importJsonBtn');
+            
+            if (!confirm('确定要导入JSON数据吗？这会将images.json中的数据添加到PostgreSQL数据库中。')) {
                 return;
             }
             
@@ -363,9 +882,9 @@
                 if (result.success) {
                     showDatabaseMessage(result.message, 'success');
                     // 刷新系统状态
-                    setTimeout(() => {
+                    requestAnimationFrame(() => {
                         loadSystemStatus();
-                    }, 1000);
+                    });
                 } else {
                     showDatabaseMessage('导入失败: ' + result.message, 'error');
                 }
@@ -374,7 +893,7 @@
                 showDatabaseMessage('导入失败: ' + error.message, 'error');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '📥 导入JSON数据';
+                btn.textContent = '📥 导入 JSON 数据 (兼容)';
             }
         }
 
@@ -386,11 +905,13 @@
                 
                 if (result.success) {
                     const db = result.database;
-                    const message = `数据库连接: ${db.isConnected ? '正常' : '异常'}\n` +
-                                  `数据库路径: ${db.dbPath}\n` +
-                                  `总记录数: ${db.storageStats.total}\n` +
-                                  `本地存储: ${db.storageStats.local}\n` +
-                                  `R2存储: ${db.storageStats.r2}`;
+                    const message = `数据库类型: PostgreSQL<br>` +
+                                  `连接状态: ${db.isConnected ? '✅ 正常' : '❌ 异常'}<br>` +
+                                  `数据库主机: ${db.config?.host || 'N/A'}<br>` +
+                                  `数据库名称: ${db.config?.database || 'N/A'}<br>` +
+                                  `总记录数: ${db.storageStats?.total || 0}<br>` +
+                                  `本地存储: ${db.storageStats?.local || 0}<br>` +
+                                  `R2存储: ${db.storageStats?.r2 || 0}`;
                     showDatabaseMessage(message, 'info');
                 } else {
                     showDatabaseMessage('获取数据库状态失败', 'error');
@@ -408,10 +929,123 @@
             statusDiv.style.display = 'block';
         }
 
+        // SQLite 文件选择处理
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            const fileNameDiv = document.getElementById('selectedFileName');
+            const uploadBtn = document.getElementById('uploadImportBtn');
+            
+            if (file) {
+                selectedFile = file;
+                fileNameDiv.textContent = `已选择: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                fileNameDiv.classList.add('show');
+                uploadBtn.disabled = false;
+                
+                // 验证文件类型
+                const validTypes = ['.db', '.json'];
+                const fileExt = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+                if (!validTypes.includes(fileExt)) {
+                    showSqliteImportMessage('警告: 请选择 .db 或 .json 文件', 'warning');
+                }
+            } else {
+                selectedFile = null;
+                fileNameDiv.classList.remove('show');
+                uploadBtn.disabled = true;
+            }
+        }
+
+        // 自动检测并导入 SQLite 数据
+        async function autoImportSqlite() {
+            const btn = document.getElementById('autoImportBtn');
+            
+            btn.disabled = true;
+            btn.textContent = '检测中...';
+            
+            try {
+                const response = await fetch('/api/sqlite-auto-import', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSqliteImportMessage(result.message, 'success');
+                    // 刷新系统状态
+                    requestAnimationFrame(() => {
+                        loadSystemStatus();
+                    });
+                } else {
+                    showSqliteImportMessage(result.message, result.warning ? 'warning' : 'error');
+                }
+            } catch (error) {
+                console.error('自动导入失败:', error);
+                showSqliteImportMessage('自动导入失败: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔍 自动检测并导入';
+            }
+        }
+
+        // 上传并导入选择的 SQLite 文件
+        async function uploadAndImportSqlite() {
+            if (!selectedFile) {
+                showSqliteImportMessage('请先选择一个文件', 'warning');
+                return;
+            }
+            
+            const btn = document.getElementById('uploadImportBtn');
+            btn.disabled = true;
+            btn.textContent = '上传中...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('sqliteFile', selectedFile);
+                
+                const response = await fetch('/api/sqlite-upload-import', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSqliteImportMessage(result.message, 'success');
+                    // 清除选择的文件
+                    selectedFile = null;
+                    document.getElementById('selectedFileName').classList.remove('show');
+                    document.getElementById('sqliteFileInput').value = '';
+                    // 刷新系统状态
+                    requestAnimationFrame(() => {
+                        loadSystemStatus();
+                    });
+                } else {
+                    showSqliteImportMessage('上传导入失败: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('上传导入失败:', error);
+                showSqliteImportMessage('上传导入失败: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📤 上传并导入选择的文件';
+            }
+        }
+
+        function showSqliteImportMessage(message, type) {
+            const statusDiv = document.getElementById('sqliteImportStatus');
+            statusDiv.innerHTML = message.replace(/\n/g, '<br>');
+            statusDiv.className = `status-message ${type}`;
+            statusDiv.style.display = 'block';
+        }
+
         // 页面加载时获取系统状态
         document.addEventListener('DOMContentLoaded', () => {
             loadSystemStatus();
+            loadBackupFiles();
         });
     </script>
+    <script src="/js/dark-mode.js"></script>
 </body>
 </html> 

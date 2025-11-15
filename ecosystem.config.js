@@ -5,6 +5,8 @@ module.exports = {
       script: 'server.js',
       instances: 1,
       exec_mode: 'fork',
+      // Performance optimization: enable garbage collection
+      node_args: '--expose-gc --max-old-space-size=2048',
       env: {
         NODE_ENV: 'production',
         PORT: 3000
@@ -45,6 +47,8 @@ module.exports = {
       script: 'server.js',
       instances: 1,
       exec_mode: 'fork',
+      // Performance optimization: enable garbage collection
+      node_args: '--expose-gc --max-old-space-size=1024',
       env: {
         NODE_ENV: 'development',
         PORT: 3001
@@ -69,6 +73,8 @@ module.exports = {
       script: 'server.js',
       instances: 1,
       exec_mode: 'fork',
+      // Performance optimization: enable garbage collection
+      node_args: '--expose-gc --max-old-space-size=1024',
       env: {
         NODE_ENV: 'test',
         PORT: 8080
