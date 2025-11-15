@@ -1,3 +1,30 @@
+2.0版安装方案：
+
+
+~~~
+git clone https://github.com/1keji/modern-images.git /var/www/modern-images
+~~~
+
+~~~
+cd /var/www/modern-images
+~~~
+
+~~~
+cp .env.example .env
+~~~
+
+修改 .env 文件中的敏感信息（必须！）
+# 至少修改以下配置:
+# - SESSION_SECRET (改为随机字符串)
+# - DB_PASSWORD (改为强密码)
+# - REDIS_PASSWORD (改为强密码)
+
+启动所有服务
+docker-compose up -d
+
+反代端口就OK了，默认是3000.你也可以自行设置其他端口。
+
+
 🚀 免费 · 开源 · 极速的现代图床
 轻量图像存储解决方案，支持最新 **WebP / AVIF** 格式，内置 **格式自动转换** 与 **API接口上传** 功能。
 基于 **Node.js 高性能架构**，部署简单，使用便捷，适用于个人项目、博客、自建图床、前端协作等场景。
@@ -41,6 +68,7 @@
 ps：
 **已经添加R2对象存储支持**
 ![741b8669c263b321001.png](https://img.003666.xyz/2025/05/23/741b8669c263b321001.png)
+
 
 
 
