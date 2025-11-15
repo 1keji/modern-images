@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理中心 - 现代图床</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234361ee'><path d='M4 5h13v7h2V5c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h8v-2H4V5zm19 7v10c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V12c0-1.1.9-2 2-2h13c1.1 0 2 .9 2 2zm-2 0H8v10h13V12z'/></svg>">
+  <style>
+    .admin-center {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--spacing-lg);
+    }
+    
+    .page-header {
+      text-align: center;
+      margin-bottom: var(--spacing-xl);
+      padding-bottom: var(--spacing-lg);
+      border-bottom: 2px solid var(--primary-color);
+    }
+    
+    .page-header h1 {
+      color: var(--primary-color);
+      font-size: 2.5rem;
+      margin-bottom: var(--spacing-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-md);
+    }
+    
+    .page-header .subtitle {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+    
+    .admin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-xl);
+    }
+    
+    .admin-card {
+      background: var(--bg-color);
+      border-radius: var(--border-radius-lg);
+      padding: var(--spacing-lg);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--box-shadow);
+      transition: all var(--transition-speed) ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .admin-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(67, 97, 238, 0.15);
+      border-color: var(--primary-light);
+    }
+    
+    .admin-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: var(--spacing-md);
+    }
+    
+    .card-icon {
+      font-size: 2rem;
+      margin-right: var(--spacing-md);
+      padding: var(--spacing-sm);
+      border-radius: var(--border-radius);
+      background: var(--primary-light);
+      color: var(--primary-color);
+    }
+    
+    .card-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--text-color);
+      margin: 0;
+    }
+    
+    .card-description {
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-lg);
+      line-height: 1.6;
+    }
+    
+    .card-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 var(--spacing-lg) 0;
+    }
+    
+    .card-features li {
+      padding: var(--spacing-xs) 0;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+    }
+    
+    .card-features li::before {
+      content: '✓';
+      color: var(--primary-color);
+      font-weight: bold;
+      margin-right: var(--spacing-sm);
+    }
+    
+    .card-actions {
+      display: flex;
+      gap: var(--spacing-sm);
+      flex-wrap: wrap;
+    }
+    
+    .btn-card {
+      flex: 1;
+      min-width: 120px;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--border-radius);
+      text-decoration: none;
+      text-align: center;
+      font-weight: 500;
+      transition: all var(--transition-speed) ease;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-xs);
+    }
+    
+    .btn-primary {
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--gray-100);
+      border-color: var(--primary-light);
+    }
+    
+    .stats-section {
+      background: var(--bg-color);
+      border-radius: var(--border-radius-lg);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-xl);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--box-shadow);
+    }
+    
+    .stats-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .stats-header h2 {
+      color: var(--text-color);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--spacing-md);
+    }
+    
+    .stat-item {
+      background: var(--bg-secondary);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+      text-align: center;
+      border: 1px solid var(--border-color);
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--primary-color);
+      display: block;
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    
+    .quick-actions {
+      background: var(--bg-color);
+      border-radius: var(--border-radius-lg);
+      padding: var(--spacing-lg);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--box-shadow);
+    }
+    
+    .quick-actions h2 {
+      color: var(--text-color);
+      margin-bottom: var(--spacing-lg);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+    
+    .quick-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: var(--spacing-md);
+    }
+    
+    .quick-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      text-decoration: none;
+      color: var(--text-color);
+      text-align: center;
+      transition: all var(--transition-speed) ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+    
+    .quick-btn:hover {
+      background: var(--primary-light);
+      border-color: var(--primary-color);
+      transform: translateY(-2px);
+    }
+    
+    .quick-btn-icon {
+      font-size: 1.8rem;
+    }
+    
+    .quick-btn-text {
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    
+    @media (max-width: 768px) {
+      .admin-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .quick-buttons {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .page-header h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="logo">现代图床</a>
+      <nav class="nav">
+        <a href="/" class="btn btn-outline">首页</a>
+        <a href="/gallery" class="btn btn-outline">图片库</a>
+        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/admin-center" class="btn btn-primary">管理中心</a>
+        <a href="/settings" class="btn btn-outline">系统设置</a>
+        <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
+        <a href="/logout" class="btn btn-outline">退出</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="admin-center">
+    <div class="page-header">
+      <h1>
+        <span>🎛️</span>
+        管理中心
+      </h1>
+      <p class="subtitle">统一管理图床系统的各项功能和配置</p>
+    </div>
+
+    <!-- 系统状态统计 -->
+    <div class="stats-section">
+      <div class="stats-header">
+        <h2>
+          <span>📊</span>
+          系统状态概览
+        </h2>
+        <button id="refreshStats" class="btn btn-secondary">
+          <span>🔄</span>
+          刷新
+        </button>
+      </div>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-item">
+          <span class="stat-value" id="totalImages">-</span>
+          <span class="stat-label">总图片数</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="totalStorage">-</span>
+          <span class="stat-label">存储空间</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="apiTokens">-</span>
+          <span class="stat-label">API令牌</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="redisStatus">-</span>
+          <span class="stat-label">Redis状态</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主要管理功能 -->
+    <div class="admin-grid">
+      <!-- 数据管理 -->
+      <div class="admin-card">
+        <div class="card-header">
+          <div class="card-icon">🗄️</div>
+          <h3 class="card-title">数据管理</h3>
+        </div>
+        <p class="card-description">
+          管理图片数据库、备份恢复、数据迁移等功能，确保数据安全。
+        </p>
+        <ul class="card-features">
+          <li>PostgreSQL数据库管理</li>
+          <li>数据备份与恢复</li>
+          <li>图片数据迁移</li>
+          <li>SQLite数据导入</li>
+          <li>自动备份设置</li>
+        </ul>
+        <div class="card-actions">
+          <a href="/migrate" class="btn-card btn-primary">
+            <span>🔧</span>
+            数据管理
+          </a>
+        </div>
+      </div>
+
+      <!-- Redis缓存管理 -->
+      <div class="admin-card">
+        <div class="card-header">
+          <div class="card-icon">⚡</div>
+          <h3 class="card-title">Redis缓存管理</h3>
+        </div>
+        <p class="card-description">
+          管理Redis缓存服务，优化系统性能，监控缓存状态。
+        </p>
+        <ul class="card-features">
+          <li>缓存状态监控</li>
+          <li>缓存清理操作</li>
+          <li>TTL时间配置</li>
+          <li>内存使用统计</li>
+          <li>连接状态检查</li>
+        </ul>
+        <div class="card-actions">
+          <a href="/redis-management" class="btn-card btn-primary">
+            <span>⚡</span>
+            Redis管理
+          </a>
+        </div>
+      </div>
+
+      <!-- API管理 -->
+      <div class="admin-card">
+        <div class="card-header">
+          <div class="card-icon">🔧</div>
+          <h3 class="card-title">API管理</h3>
+        </div>
+        <p class="card-description">
+          管理API令牌、配置API参数，支持第三方工具集成。
+        </p>
+        <ul class="card-features">
+          <li>API令牌创建与管理</li>
+          <li>API状态开关</li>
+          <li>默认格式设置</li>
+          <li>PicGo配置指南</li>
+          <li>API使用文档</li>
+        </ul>
+        <div class="card-actions">
+          <a href="/api-management" class="btn-card btn-primary">
+            <span>🔧</span>
+            API管理
+          </a>
+        </div>
+      </div>
+
+      <!-- 存储配置 -->
+      <div class="admin-card">
+        <div class="card-header">
+          <div class="card-icon">💾</div>
+          <h3 class="card-title">存储配置</h3>
+        </div>
+        <p class="card-description">
+          配置本地存储和云存储，管理存储空间和访问方式。
+        </p>
+        <ul class="card-features">
+          <li>本地存储设置</li>
+          <li>Cloudflare R2配置</li>
+          <li>存储空间统计</li>
+          <li>自定义域名</li>
+          <li>存储测试工具</li>
+        </ul>
+        <div class="card-actions">
+          <a href="/storage-config" class="btn-card btn-primary">
+            <span>💾</span>
+            存储配置
+          </a>
+        </div>
+      </div>
+
+      <!-- 系统调试 -->
+      <div class="admin-card">
+        <div class="card-header">
+          <div class="card-icon">🔍</div>
+          <h3 class="card-title">系统调试</h3>
+        </div>
+        <p class="card-description">
+          系统调试工具，检查各组件状态，排查问题。
+        </p>
+        <ul class="card-features">
+          <li>系统状态检查</li>
+          <li>R2连接测试</li>
+          <li>Redis连接测试</li>
+          <li>错误日志查看</li>
+          <li>性能监控</li>
+        </ul>
+        <div class="card-actions">
+          <a href="/debug" class="btn-card btn-primary">
+            <span>🔍</span>
+            系统调试
+          </a>
+        </div>
+      </div>
+
+      <!-- HTTPS测试 -->
+      <div class="admin-card">
+        <div class="card-header">
+          <div class="card-icon">🔒</div>
+          <h3 class="card-title">HTTPS测试</h3>
+        </div>
+        <p class="card-description">
+          测试HTTPS连接，检查SSL证书，确保网站安全。
+        </p>
+        <ul class="card-features">
+          <li>HTTPS连接测试</li>
+          <li>SSL证书检查</li>
+          <li>安全性评估</li>
+          <li>协议兼容性</li>
+          <li>性能测试</li>
+        </ul>
+        <div class="card-actions">
+          <a href="/test-https" class="btn-card btn-primary">
+            <span>🔒</span>
+            HTTPS测试
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 快速操作 -->
+    <div class="quick-actions">
+      <h2>
+        <span>⚡</span>
+        快速操作
+      </h2>
+      <div class="quick-buttons">
+        <a href="/gallery" class="quick-btn">
+          <span class="quick-btn-icon">🖼️</span>
+          <span class="quick-btn-text">图片库</span>
+        </a>
+        <a href="/settings" class="quick-btn">
+          <span class="quick-btn-icon">⚙️</span>
+          <span class="quick-btn-text">系统设置</span>
+        </a>
+        <a href="/" class="quick-btn">
+          <span class="quick-btn-icon">📤</span>
+          <span class="quick-btn-text">上传图片</span>
+        </a>
+        <a href="/logout" class="quick-btn">
+          <span class="quick-btn-icon">🚪</span>
+          <span class="quick-btn-text">退出登录</span>
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/auth-check.js"></script>
+  <script>
+    // 加载系统状态统计
+    async function loadSystemStats() {
+      try {
+        // 获取图片统计
+        const imagesResponse = await fetch('/api/storage-stats');
+        const imagesData = await imagesResponse.json();
+        
+        // 提取图片数量和空间占用
+        const totalImages = imagesData.stats ? imagesData.stats.total : imagesData.totalImages;
+        const totalBytes = imagesData.sizes ? imagesData.sizes.total : imagesData.totalSize;
+        document.getElementById('totalImages').textContent = totalImages || 0;
+        document.getElementById('totalStorage').textContent = formatBytes(totalBytes || 0);
+        
+        // 获取API令牌数量
+        const tokensResponse = await fetch('/api/tokens');
+        const tokensData = await tokensResponse.json();
+        
+        // 获取Redis状态
+        const redisResponse = await fetch('/api/debug/redis-status');
+        const redisData = await redisResponse.json();
+        
+        document.getElementById('apiTokens').textContent = tokensData.tokens?.length || 0;
+        const redisConnected = redisData.redis ? redisData.redis.connected : redisData.connected;
+        document.getElementById('redisStatus').textContent = redisConnected ? '已连接' : '未连接';
+        
+        // 根据Redis状态设置颜色
+        const redisStatusEl = document.getElementById('redisStatus');
+        redisStatusEl.style.color = redisConnected ? 'var(--success-color)' : 'var(--error-color)';
+        
+      } catch (error) {
+        console.error('加载系统统计失败:', error);
+      }
+    }
+
+    // 格式化文件大小
+    function formatBytes(bytes, decimals = 2) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    // 页面加载完成后执行
+    document.addEventListener('DOMContentLoaded', function() {
+      loadSystemStats();
+      
+      // 刷新按钮事件
+      document.getElementById('refreshStats').addEventListener('click', loadSystemStats);
+    });
+  </script>
+  <script src="/js/auth-check.js"></script>
+  <script src="/js/dark-mode.js"></script>
+</body>
+</html> 

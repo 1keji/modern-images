@@ -31,7 +31,12 @@
     <div class="container header-content">
       <a href="/" class="logo">现代图床</a>
       <nav class="nav">
-        <a href="/" class="btn btn-outline">返回首页</a>
+        <a href="/" class="btn btn-outline">首页</a>
+        <a href="/gallery" class="btn btn-outline">图片库</a>
+        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/admin-center" class="btn btn-outline">管理中心</a>
+        <a href="/settings" class="btn btn-outline">系统设置</a>
+        <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
         <a href="/logout" class="btn btn-outline">退出</a>
       </nav>
     </div>
@@ -105,5 +110,6 @@
     // 页面加载时自动获取状态
     window.addEventListener('load', loadR2Status);
   </script>
+  <script src="/js/dark-mode.js"></script>
 </body>
 </html> 

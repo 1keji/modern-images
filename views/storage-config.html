@@ -131,7 +131,8 @@
       <nav class="nav">
         <a href="/" class="btn btn-outline">上传</a>
         <a href="/gallery" class="btn btn-outline">我的图片库</a>
-        <a href="/api-management" class="btn btn-outline">API管理</a>
+        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/admin-center" class="btn btn-outline">管理中心</a>
         <a href="/storage-config" class="btn btn-outline">存储配置</a>
         <a href="/settings" class="btn btn-outline">系统设置</a>
         <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
@@ -297,23 +298,6 @@
   </main>
 
   <script>
-    // 深色模式切换
-    const toggleDarkMode = document.getElementById('toggleDarkMode');
-    const body = document.body;
-
-    // 检查本地存储中的深色模式偏好
-    if (localStorage.getItem('darkMode') === 'true') {
-      body.classList.add('dark-mode');
-      toggleDarkMode.textContent = '浅色模式';
-    }
-
-    toggleDarkMode.addEventListener('click', () => {
-      body.classList.toggle('dark-mode');
-      const isDarkMode = body.classList.contains('dark-mode');
-      localStorage.setItem('darkMode', isDarkMode);
-      toggleDarkMode.textContent = isDarkMode ? '浅色模式' : '暗色模式';
-    });
-
     // 存储选项切换
     const storageOptions = document.querySelectorAll('.storage-option');
     const r2Config = document.getElementById('r2-config');
@@ -450,5 +434,6 @@
     // 页面加载时加载配置
     loadConfig();
   </script>
+  <script src="/js/dark-mode.js"></script>
 </body>
 </html> 

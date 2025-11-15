@@ -11,20 +11,34 @@
     "defaultFormat": "original"
   },
   "storage": {
-    "type": "local",
-    "r2": {
-      "enabled": false,
-      "accessKeyId": "",
-      "secretAccessKey": "",
-      "endpoint": "",
-      "bucket": "",
-      "region": "auto",
-      "customDomain": ""
-    }
+    "type": "local"
   },
   "imageQuality": {
     "webp": 80,
     "avif": 75,
     "pngOptimize": true
+  },
+  "redis": {
+    "enabled": true,
+    "sessionStore": true,
+    "cacheImages": true,
+    "cacheConfig": true,
+    "cacheTtl": 300
+  },
+  "defaultCategory": "",
+  "imageDomain": {
+    "enabled": false,
+    "domain": "",
+    "httpsOnly": true,
+    "backupDomains": []
+  },
+  "domainSecurity": {
+    "enabled": false,
+    "allowedDomains": [],
+    "redirectToMain": false,
+    "mainDomain": ""
+  },
+  "displaySettings": {
+    "showRecentUploads": true
   }
 }

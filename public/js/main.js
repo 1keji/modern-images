@@ -27,40 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
     toast.offsetHeight;
     toast.classList.add('show');
     
+    const removeToast = () => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    };
+    
     const closeBtn = toast.querySelector('.toast-close');
-    closeBtn.addEventListener('click', () => {
-      toast.classList.remove('show');
-      setTimeout(() => toast.remove(), 300);
-    });
+    closeBtn.addEventListener('click', removeToast);
     
-    setTimeout(() => {
-      toast.classList.remove('show');
-      setTimeout(() => toast.remove(), 300);
-    }, duration);
-  }
-
-  // 暗色模式切换
-  const toggleDarkModeBtn = document.getElementById('toggleDarkMode');
-  if (toggleDarkModeBtn) {
-    // 检查保存的主题偏好或尊重操作系统偏好
-    const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
-    const storedTheme = localStorage.getItem('theme');
-    
-    if (storedTheme === 'dark' || (!storedTheme && prefersDarkScheme.matches)) {
-      document.body.classList.add('dark');
-      toggleDarkModeBtn.innerHTML = '明亮模式 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
-    } else {
-      toggleDarkModeBtn.innerHTML = '暗色模式 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
-    }
-    
-    toggleDarkModeBtn.addEventListener('click', () => {
-      document.body.classList.toggle('dark');
-      const isDark = document.body.classList.contains('dark');
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
-      toggleDarkModeBtn.innerHTML = isDark 
-        ? '明亮模式 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>'
-        : '暗色模式 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
-    });
+    setTimeout(removeToast, duration);
   }
 
   // 文件上传处理
@@ -552,9 +527,38 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       
       const result = await response.json();
-      
+
       if (result.success) {
         showToast('粘贴的图片上传成功（已转为WebP格式）');
+
+        // 如果配置为不显示历史图片,将本次上传的图片信息存储到sessionStorage
+        try {
+          const settingsRes = await fetch('/api/settings');
+          const settingsResult = await settingsRes.json();
+          const showRecentUploads = settingsResult.success && settingsResult.displaySettings
+            ? settingsResult.displaySettings.showRecentUploads
+            : true;
+
+          if (!showRecentUploads && result.images) {
+            // 获取现有的sessionStorage中的图片(如果有)
+            let existingImages = [];
+            const existingStr = sessionStorage.getItem('recentUploadedImages');
+            if (existingStr) {
+              try {
+                existingImages = JSON.parse(existingStr);
+              } catch (e) {
+                existingImages = [];
+              }
+            }
+
+            // 将新上传的图片添加到开头
+            const updatedImages = [...result.images, ...existingImages];
+            sessionStorage.setItem('recentUploadedImages', JSON.stringify(updatedImages));
+          }
+        } catch (error) {
+          console.error('处理上传后的图片存储失败:', error);
+        }
+
         loadGallery(); // 刷新图片库
       } else {
         showToast(`上传失败: ${result.error}`, 'error');
@@ -632,12 +636,41 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       
       const result = await response.json();
-      
+
       if (result.success) {
         showToast(`成功上传 ${fileQueue.length} 张图片`);
         fileInput.value = ''; // 仅清空文件输入，保留其他选项
         fileQueue = []; // 清空文件队列
         updatePreview();
+
+        // 如果配置为不显示历史图片,将本次上传的图片信息存储到sessionStorage
+        try {
+          const settingsRes = await fetch('/api/settings');
+          const settingsResult = await settingsRes.json();
+          const showRecentUploads = settingsResult.success && settingsResult.displaySettings
+            ? settingsResult.displaySettings.showRecentUploads
+            : true;
+
+          if (!showRecentUploads && result.images) {
+            // 获取现有的sessionStorage中的图片(如果有)
+            let existingImages = [];
+            const existingStr = sessionStorage.getItem('recentUploadedImages');
+            if (existingStr) {
+              try {
+                existingImages = JSON.parse(existingStr);
+              } catch (e) {
+                existingImages = [];
+              }
+            }
+
+            // 将新上传的图片添加到开头
+            const updatedImages = [...result.images, ...existingImages];
+            sessionStorage.setItem('recentUploadedImages', JSON.stringify(updatedImages));
+          }
+        } catch (error) {
+          console.error('处理上传后的图片存储失败:', error);
+        }
+
         loadGallery(); // 刷新图片库
       } else {
         showToast(`上传失败: ${result.error}`, 'error');
@@ -793,9 +826,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentImageIndex = -1;
   let selectedIndices = [];
   let lastSelectedIndex = null;
-  
+
   // 用于缓存已加载图片的对象
   const imageCache = {};
+
+  // 标记是否是页面首次加载
+  let isFirstLoad = true;
 
   // 点击空白区域取消选择的事件监听器 - 移到这里优先执行
   document.addEventListener('click', (e) => {
@@ -832,36 +868,77 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     }
-    
+
     try {
-      // 获取显示数量设置
-      let limit = 30; // 默认值
-      const recentImagesLimit = document.getElementById('recentImagesLimit');
-      if (recentImagesLimit) {
-        limit = parseInt(recentImagesLimit.value);
-      }
-      
-      const res = await fetch(`/images?limit=${limit}`);
-      const result = await res.json();
-      
-      if (result.success) {
-        galleryImages = result.images;
-        
-        // 获取并应用存储的展示状态（在渲染前获取）
-        const galleryVisible = localStorage.getItem('galleryVisible') !== 'false'; // 默认显示
-        
-        renderGallery(result.images);
-        
-        // 如果设置为隐藏，应用马赛克效果
-        if (!galleryVisible && gallery) {
-          gallery.classList.add('gallery-mosaic');
+      // 首先获取显示设置
+      const settingsRes = await fetch('/api/settings');
+      const settingsResult = await settingsRes.json();
+      const showRecentUploads = settingsResult.success && settingsResult.displaySettings
+        ? settingsResult.displaySettings.showRecentUploads
+        : true; // 默认显示历史图片
+
+      let imagesToDisplay = [];
+
+      if (showRecentUploads) {
+        // 显示历史图片:从后端API获取
+        let limit = 30; // 默认值
+        const recentImagesLimit = document.getElementById('recentImagesLimit');
+        if (recentImagesLimit) {
+          limit = parseInt(recentImagesLimit.value);
         }
-        
-        if (result.images.length === 0 && gallery) {
-          gallery.innerHTML = '<div class="empty-gallery">暂无图片，请先上传</div>';
+
+        const res = await fetch(`/images?limit=${limit}`);
+        const result = await res.json();
+
+        if (result.success) {
+          imagesToDisplay = result.images;
+        } else {
+          showToast('获取图片列表失败', 'error');
+          imagesToDisplay = [];
         }
       } else {
-        showToast('获取图片列表失败', 'error');
+        // 不显示历史图片:只显示本次上传的图片(从sessionStorage读取)
+        if (isFirstLoad) {
+          // 首次加载:清空sessionStorage,确保不显示历史图片
+          sessionStorage.removeItem('recentUploadedImages');
+          imagesToDisplay = [];
+        } else {
+          // 后续加载(上传后刷新):读取并显示本次上传的图片
+          const recentUploadedStr = sessionStorage.getItem('recentUploadedImages');
+          if (recentUploadedStr) {
+            try {
+              imagesToDisplay = JSON.parse(recentUploadedStr);
+            } catch (e) {
+              console.error('解析sessionStorage中的图片数据失败:', e);
+              imagesToDisplay = [];
+            }
+          } else {
+            imagesToDisplay = [];
+          }
+        }
+      }
+
+      // 标记首次加载已完成
+      isFirstLoad = false;
+
+      galleryImages = imagesToDisplay;
+
+      // 获取并应用存储的展示状态（在渲染前获取）
+      const galleryVisible = localStorage.getItem('galleryVisible') !== 'false'; // 默认显示
+
+      renderGallery(imagesToDisplay);
+
+      // 如果设置为隐藏，应用马赛克效果
+      if (!galleryVisible && gallery) {
+        gallery.classList.add('gallery-mosaic');
+      }
+
+      if (imagesToDisplay.length === 0 && gallery) {
+        if (showRecentUploads) {
+          gallery.innerHTML = '<div class="empty-gallery">暂无图片，请先上传</div>';
+        } else {
+          gallery.innerHTML = '<div class="empty-gallery">本次会话暂无上传图片</div>';
+        }
       }
     } catch (err) {
       console.error(err);
@@ -1331,9 +1408,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // 显示菜单动画
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       menu.classList.add('show');
-    }, 10);
+    });
   }
 
   // 优化的图片模态框，只显示图片和导航，性能优化
