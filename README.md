@@ -1,75 +1,36 @@
+升级一些功能，包括之前有朋友提到的上传页可以设置不显示历史图片。
+
+还有其他一些功能，并简化了安装流程。功能更强大，安装更简单。安装方法在最下方。
+
+![QulTZJAN9YXOmUysZlnxXNU3haEDmsOa.webp](https://cdn.nodeimage.com/i/QulTZJAN9YXOmUysZlnxXNU3haEDmsOa.webp)
+
+![hCED2vi8zJwOpprbLtDebFeYAtm46SRP.webp](https://cdn.nodeimage.com/i/hCED2vi8zJwOpprbLtDebFeYAtm46SRP.webp)
+
+![SkoxoIKBEM7ZT3MZHj59cyJ8CtkVeHjJ.webp](https://cdn.nodeimage.com/i/SkoxoIKBEM7ZT3MZHj59cyJ8CtkVeHjJ.webp)
+
+![dXGt1nfp22zqkaxJltVjkg66ECtJ5DfR.webp](https://cdn.nodeimage.com/i/dXGt1nfp22zqkaxJltVjkg66ECtJ5DfR.webp)
+
+![Sh1cADpBZmWjr3VYkTUZi0LJMiYeIbHO.webp](https://cdn.nodeimage.com/i/Sh1cADpBZmWjr3VYkTUZi0LJMiYeIbHO.webp)
+
+![av8xkEwDy536QyPoVOVflmCDzRWxXxT7.webp](https://cdn.nodeimage.com/i/av8xkEwDy536QyPoVOVflmCDzRWxXxT7.webp)
+
+![PcfitHV0lAApeuZvIyZFpOlraI1lLYUI.webp](https://cdn.nodeimage.com/i/PcfitHV0lAApeuZvIyZFpOlraI1lLYUI.webp)
+
 2.0版安装方案：
+服务器需要有安装安装 Docker 和 Docker Compose
 
-
-~~~
 git clone https://github.com/1keji/modern-images.git /var/www/modern-images
-~~~
-
-~~~
 cd /var/www/modern-images
-~~~
-
-~~~
 cp .env.example .env
-~~~
+修改 .env 文件中的敏感信息（必须！） 至少修改以下配置:
 
-修改 .env 文件中的敏感信息（必须！）
-至少修改以下配置:
-- SESSION_SECRET (改为随机字符串)
-- DB_PASSWORD (改为强密码)
-- REDIS_PASSWORD (改为强密码)
-
+SESSION_SECRET (改为随机字符串)
+DB_PASSWORD (改为强密码)
+REDIS_PASSWORD (改为强密码)
 启动所有服务
-docker-compose up -d
 
+docker-compose up -d
 反代端口就OK了，默认是3000.你也可以自行设置其他端口。
 
-
-🚀 免费 · 开源 · 极速的现代图床
-轻量图像存储解决方案，支持最新 **WebP / AVIF** 格式，内置 **格式自动转换** 与 **API接口上传** 功能。
-基于 **Node.js 高性能架构**，部署简单，使用便捷，适用于个人项目、博客、自建图床、前端协作等场景。
-🔧 开源地址 ：[1keji/modern-images: 现代图床. 安全、简单、高效的图片托管服务](https://www.nodeseek.com/jump?to=https%3A%2F%2Fgithub.com%2F1keji%2Fmodern-images)
-
-视频教程：[https://youtu.be/1nlfZtQTUL8](https://www.nodeseek.com/jump?to=https%3A%2F%2Fyoutu.be%2F1nlfZtQTUL8)
-
-### **图床界面**：（下面图片所使用的图床就是现代图床。）
-
-#### 图床上传页
-
-![image-20250521084443072](http://img.211200.xyz/i/api/2025/05/20/997153698fbf3e52001.webp)
-
-##### 上传页可以开启隐私模式
-
-![image-20250521085425061](http://img.211200.xyz/i/api/2025/05/20/68065ec6d3b08d55001.webp)
-
-##### 黑暗模式：
-
-![Snipaste_2025-05-21_08-47-20](http://img.211200.xyz/i/api/2025/05/20/95cb91026e40cd1a001.webp)
-
-#### 图片库页面：
-
-![Snipaste_2025-05-21_08-46-37](http://img.211200.xyz/i/api/2025/05/20/adcded15f93fb01d001.webp)
-
-##### 黑暗模式
-
-![Snipaste_2025-05-21_08-47-33](http://img.211200.xyz/i/api/2025/05/20/d0e8d065d21c543d001.webp)
-
-#### api管理页面：
-
-![Snipaste_2025-05-21_08-47-02](http://img.211200.xyz/i/api/2025/05/20/94228bccb169885e001.webp)
-
-**这个帖子就是在markdown编辑器编辑的，图片直接粘贴上传并自动完成了格式转换：**
-
-![image-20250521085847377](http://img.211200.xyz/i/api/2025/05/20/88cf38ed6f7c4c0a001.webp)
-
-更多功能等待您自己的体验。本图床完全免费开源。
-
-**有需求或者有兴趣的各位朋友，可以使用本图床进行二开创作。只要不用于非法目的。**
-ps：
-**已经添加R2对象存储支持**
-![741b8669c263b321001.png](https://img.003666.xyz/2025/05/23/741b8669c263b321001.png)
-
-
-
-
-
+github地址：
+https://github.com/1keji/modern-images
