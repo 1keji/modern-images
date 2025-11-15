@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>存储配置 - 图床</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234361ee'><path d='M4 5h13v7h2V5c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h8v-2H4V5zm19 7v10c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V12c0-1.1.9-2 2-2h13c1.1 0 2 .9 2 2zm-2 0H8v10h13V12z'/></svg>">
+  <style>
+    .storage-option {
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      background-color: var(--bg-secondary);
+      transition: border-color 0.3s;
+    }
+    .storage-option.active {
+      border-color: var(--primary-color);
+      background-color: var(--primary-light);
+    }
+    .storage-option input[type="radio"] {
+      margin-right: var(--spacing-sm);
+    }
+    .form-group {
+      margin-bottom: var(--spacing-md);
+    }
+    .form-label {
+      display: block;
+      margin-bottom: var(--spacing-xs);
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .form-control {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--input-border-radius);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+    .form-control:focus {
+      border-color: var(--primary-color);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+    }
+    .form-help {
+      color: var(--text-secondary);
+      font-size: 0.9em;
+      margin-top: 4px;
+    }
+    .r2-config {
+      margin-top: var(--spacing-md);
+      padding: var(--spacing-md);
+      background-color: var(--bg-secondary);
+      border-radius: var(--border-radius);
+      display: none;
+    }
+    .r2-config.show {
+      display: block;
+    }
+    .form-check-input {
+      margin-right: var(--spacing-sm);
+      height: 20px;
+      width: 40px;
+      cursor: pointer;
+      appearance: none;
+      background-color: var(--gray-400);
+      border-radius: 20px;
+      position: relative;
+      transition: background-color 0.3s;
+    }
+    .form-check-input:checked {
+      background-color: var(--primary-color);
+    }
+    .form-check-input:before {
+      content: '';
+      position: absolute;
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+    }
+    .form-check-input:checked:before {
+      transform: translateX(20px);
+    }
+    .form-check-label {
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .test-result {
+      margin-top: var(--spacing-md);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+      display: none;
+    }
+    .test-result.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .test-result.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .alert {
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius);
+      margin-bottom: var(--spacing-md);
+    }
+    .alert-info {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #b6d4ea;
+    }
+    .alert-warning {
+      background-color: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="logo">现代图床</a>
+      <nav class="nav">
+        <a href="/" class="btn btn-outline">上传</a>
+        <a href="/gallery" class="btn btn-outline">我的图片库</a>
+        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/admin-center" class="btn btn-outline">管理中心</a>
+        <a href="/storage-config" class="btn btn-outline">存储配置</a>
+        <a href="/settings" class="btn btn-outline">系统设置</a>
+        <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
+        <a href="/logout" class="btn btn-outline">退出</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>存储配置</h1>
+    
+    <div class="alert alert-info">
+      <strong>说明：</strong>您可以选择将图片存储在本地服务器或Cloudflare R2对象存储。R2提供更好的可扩展性和CDN加速。
+    </div>
+
+    <div class="row" style="display: flex; gap: var(--spacing-lg); flex-wrap: wrap;">
+      <div style="flex: 2; min-width: 300px;">
+        <div class="card" style="background-color: var(--bg-color); border-radius: var(--border-radius); box-shadow: var(--box-shadow); margin-bottom: var(--spacing-lg);">
+          <div style="padding: var(--spacing-md);">
+            <h2 style="margin-bottom: var(--spacing-md);">存储方式选择</h2>
+            
+            <form id="storageConfigForm">
+              <div class="storage-option" id="local-option">
+                <input type="radio" name="storageType" value="local" id="storage-local">
+                <label for="storage-local" style="font-weight: 500;">本地存储</label>
+                <p style="margin: var(--spacing-xs) 0 0 25px; color: var(--text-secondary);">
+                  图片存储在服务器本地文件系统中
+                </p>
+              </div>
+
+              <div class="storage-option" id="r2-option">
+                <input type="radio" name="storageType" value="r2" id="storage-r2">
+                <label for="storage-r2" style="font-weight: 500;">Cloudflare R2对象存储</label>
+                <p style="margin: var(--spacing-xs) 0 0 25px; color: var(--text-secondary);">
+                  图片存储在Cloudflare R2，提供全球CDN加速
+                </p>
+
+                <div class="r2-config" id="r2-config">
+                  <div style="display: flex; align-items: center; margin-bottom: var(--spacing-md);">
+                    <input class="form-check-input" type="checkbox" id="r2EnabledSwitch">
+                    <label class="form-check-label" for="r2EnabledSwitch">启用R2存储</label>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="r2AccessKeyId">Access Key ID</label>
+                    <input type="text" class="form-control" id="r2AccessKeyId" placeholder="R2 Access Key ID">
+                    <div class="form-help">在Cloudflare控制台的R2管理页面获取</div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="r2SecretAccessKey">Secret Access Key</label>
+                    <input type="password" class="form-control" id="r2SecretAccessKey" placeholder="R2 Secret Access Key">
+                    <div class="form-help">对应的密钥，请妥善保管</div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="r2Endpoint">Endpoint</label>
+                    <input type="text" class="form-control" id="r2Endpoint" placeholder="https://your-account-id.r2.cloudflarestorage.com">
+                    <div class="form-help">R2存储的API端点，格式：https://your-account-id.r2.cloudflarestorage.com</div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="r2Bucket">Bucket名称</label>
+                    <input type="text" class="form-control" id="r2Bucket" placeholder="my-image-bucket">
+                    <div class="form-help">存储图片的Bucket名称</div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="r2Region">区域</label>
+                    <input type="text" class="form-control" id="r2Region" placeholder="auto" value="auto">
+                    <div class="form-help">通常保持"auto"即可</div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="r2CustomDomain">自定义域名 (可选)</label>
+                    <input type="text" class="form-control" id="r2CustomDomain" placeholder="cdn.yourdomain.com">
+                    <div class="form-help">如果您配置了自定义域名，请填写此项以获得更好的访问速度</div>
+                  </div>
+
+                  <div style="margin-top: var(--spacing-md);">
+                    <button type="button" class="btn btn-secondary" id="testR2Connection">测试R2连接</button>
+                    <div id="testResult" class="test-result"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top: var(--spacing-lg);">
+                <button type="submit" class="btn btn-primary">保存配置</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      
+      <div style="flex: 1; min-width: 250px;">
+        <div class="card" style="background-color: var(--bg-color); border-radius: var(--border-radius); box-shadow: var(--box-shadow); margin-bottom: var(--spacing-lg);">
+          <div style="padding: var(--spacing-md);">
+            <h3 style="margin-bottom: var(--spacing-md);">配置说明</h3>
+            
+            <h4>本地存储</h4>
+            <ul style="margin-bottom: var(--spacing-md);">
+              <li>图片存储在服务器本地</li>
+              <li>无需额外配置</li>
+              <li>适合小规模使用</li>
+            </ul>
+
+            <h4>R2对象存储</h4>
+            <ul style="margin-bottom: var(--spacing-md);">
+              <li>全球CDN加速</li>
+              <li>无限扩展性</li>
+              <li>高可用性</li>
+              <li>成本优化</li>
+            </ul>
+
+            <div class="alert alert-warning">
+              <strong>注意：</strong>更改存储方式不会影响已上传的文件，但新上传的文件将使用新的存储方式。
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="background-color: var(--bg-color); border-radius: var(--border-radius); box-shadow: var(--box-shadow);">
+          <div style="padding: var(--spacing-md);">
+            <h3 style="margin-bottom: var(--spacing-md);">R2配置步骤</h3>
+            
+            <div class="alert alert-warning" style="margin-bottom: var(--spacing-md);">
+              <strong>重要：</strong>为了能正常显示图片，您需要设置R2 Bucket为公开访问！
+            </div>
+            
+            <h4>1. 创建和配置Bucket</h4>
+            <ol style="margin-bottom: var(--spacing-md);">
+              <li>登录Cloudflare控制台</li>
+              <li>转到R2对象存储</li>
+              <li>创建一个新的Bucket</li>
+              <li><strong>重要：在Bucket设置中，将"公开访问"设置为"允许"</strong></li>
+            </ol>
+
+            <h4>2. 创建API令牌</h4>
+            <ol style="margin-bottom: var(--spacing-md);">
+              <li>在R2页面点击"管理R2 API令牌"</li>
+              <li>点击"创建API令牌"</li>
+              <li>选择适当的权限（建议选择"对象读写"）</li>
+              <li>复制Access Key ID和Secret Access Key</li>
+            </ol>
+
+            <h4>3. 配置自定义域名（推荐）</h4>
+            <ol style="margin-bottom: var(--spacing-md);">
+              <li>在Bucket页面点击"自定义域"</li>
+              <li>添加您的域名（如：cdn.yourdomain.com）</li>
+              <li>按照提示完成DNS设置</li>
+              <li>在下方配置中填写自定义域名</li>
+            </ol>
+
+            <h4>4. 填写配置信息</h4>
+            <ol>
+              <li>在此页面填写API凭据和Bucket信息</li>
+              <li>点击"测试R2连接"验证配置</li>
+              <li>测试成功后保存配置</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // 存储选项切换
+    const storageOptions = document.querySelectorAll('.storage-option');
+    const r2Config = document.getElementById('r2-config');
+    const storageRadios = document.querySelectorAll('input[name="storageType"]');
+
+    storageRadios.forEach(radio => {
+      radio.addEventListener('change', function() {
+        // 更新视觉状态
+        storageOptions.forEach(option => option.classList.remove('active'));
+        this.closest('.storage-option').classList.add('active');
+
+        // 显示/隐藏R2配置
+        if (this.value === 'r2') {
+          r2Config.classList.add('show');
+        } else {
+          r2Config.classList.remove('show');
+        }
+      });
+    });
+
+    // 加载当前配置
+    async function loadConfig() {
+      try {
+        const response = await fetch('/api/storage-config');
+        const data = await response.json();
+        
+        if (data.success) {
+          const config = data.config;
+          
+          // 设置存储类型
+          document.querySelector(`input[value="${config.type}"]`).checked = true;
+          document.querySelector(`input[value="${config.type}"]`).dispatchEvent(new Event('change'));
+          
+          // 设置R2配置
+          if (config.r2) {
+            document.getElementById('r2EnabledSwitch').checked = config.r2.enabled;
+            document.getElementById('r2Endpoint').value = config.r2.endpoint || '';
+            document.getElementById('r2Bucket').value = config.r2.bucket || '';
+            document.getElementById('r2Region').value = config.r2.region || 'auto';
+            document.getElementById('r2CustomDomain').value = config.r2.customDomain || '';
+            
+            // 不显示敏感信息，只显示是否已配置
+            if (config.r2.hasCredentials) {
+              document.getElementById('r2AccessKeyId').placeholder = '已配置 (留空保持不变)';
+              document.getElementById('r2SecretAccessKey').placeholder = '已配置 (留空保持不变)';
+            }
+          }
+        }
+      } catch (error) {
+        console.error('加载配置失败:', error);
+      }
+    }
+
+    // 保存配置
+    document.getElementById('storageConfigForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const storageType = formData.get('storageType');
+      
+      const configData = {
+        type: storageType,
+        r2: {
+          enabled: document.getElementById('r2EnabledSwitch').checked,
+          endpoint: document.getElementById('r2Endpoint').value,
+          bucket: document.getElementById('r2Bucket').value,
+          region: document.getElementById('r2Region').value,
+          customDomain: document.getElementById('r2CustomDomain').value
+        }
+      };
+      
+      // 只有在有值时才包含敏感信息
+      const accessKeyId = document.getElementById('r2AccessKeyId').value;
+      const secretAccessKey = document.getElementById('r2SecretAccessKey').value;
+      if (accessKeyId) configData.r2.accessKeyId = accessKeyId;
+      if (secretAccessKey) configData.r2.secretAccessKey = secretAccessKey;
+      
+      try {
+        const response = await fetch('/api/storage-config', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(configData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          alert('配置保存成功！');
+          // 重新加载配置以更新占位符
+          loadConfig();
+        } else {
+          alert('保存失败：' + result.message);
+        }
+      } catch (error) {
+        console.error('保存配置失败:', error);
+        alert('保存失败，请检查网络连接');
+      }
+    });
+
+    // 测试R2连接
+    document.getElementById('testR2Connection').addEventListener('click', async function() {
+      const testResult = document.getElementById('testResult');
+      testResult.style.display = 'none';
+      this.disabled = true;
+      this.textContent = '测试中...';
+      
+      try {
+        const response = await fetch('/api/test-r2', {
+          method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        testResult.style.display = 'block';
+        if (result.success) {
+          testResult.className = 'test-result success';
+          testResult.textContent = result.message;
+        } else {
+          testResult.className = 'test-result error';
+          testResult.textContent = result.message;
+        }
+      } catch (error) {
+        testResult.style.display = 'block';
+        testResult.className = 'test-result error';
+        testResult.textContent = '测试失败：' + error.message;
+      } finally {
+        this.disabled = false;
+        this.textContent = '测试R2连接';
+      }
+    });
+
+    // 页面加载时加载配置
+    loadConfig();
+  </script>
+  <script src="/js/dark-mode.js"></script>
+</body>
+</html> 

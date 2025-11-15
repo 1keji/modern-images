@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片分类管理 - 现代图床</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234361ee'><path d='M4 5h13v7h2V5c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h8v-2H4V5zm19 7v10c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V12c0-1.1.9-2 2-2h13c1.1 0 2 .9 2 2zm-2 0H8v10h13V12z'/></svg>">
+  <style>
+    /* 类别管理按钮 */
+    .category-actions {
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 15px;
+      gap: 10px;
+    }
+    /* 当前路径导航 */
+    .category-breadcrumb {
+      margin-bottom: 15px;
+      padding: 8px 12px;
+      background-color: var(--bg-secondary);
+      border-radius: var(--border-radius);
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .category-breadcrumb .separator {
+      margin: 0 5px;
+      color: var(--text-secondary);
+    }
+    .category-breadcrumb a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .category-breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    /* 子分类菜单项样式 */
+    .context-menu-item.subcategory-item {
+      padding-left: 25px;
+      font-size: 0.95em;
+      position: relative;
+    }
+    .context-menu-item.subcategory-item:before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      width: 8px;
+      height: 1px;
+      background-color: var(--text-secondary);
+    }
+    /* 二级导航样式 */
+    .subcategory-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 5px 0 15px 0;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-secondary);
+      border-radius: var(--border-radius);
+      width: 100%;
+    }
+    .subcategory-nav .category-btn {
+      font-size: 0.9em;
+      padding: 5px 10px;
+      background-color: var(--bg-tertiary);
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .subcategory-nav .category-btn:hover {
+      background-color: var(--bg-hover);
+      border-color: var(--border-color-hover);
+    }
+    .subcategory-nav .category-btn.active {
+      background-color: var(--primary);
+      color: var(--text-on-primary);
+      border-color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="logo">现代图床</a>
+      <nav class="nav">
+        <a href="/" class="btn btn-outline">上传</a>
+        <a href="/gallery" class="btn btn-outline">我的图片库</a>
+        <a href="/categories" class="btn btn-outline active">分类管理</a>
+        <a href="/admin-center" class="btn btn-outline">管理中心</a>
+        <a href="/settings" class="btn btn-outline">系统设置</a>
+        <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
+        <a href="/logout" class="btn btn-outline">退出</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="category-management">
+      <h2>图片分类管理</h2>
+      <div id="categoryList" class="category-nav">
+        <!-- 分类列表由 JavaScript 渲染 -->
+      </div>
+      <!-- 二级分类导航，单独放在一级分类下方 -->
+      <div id="subcategoryNav" class="subcategory-nav" style="display: none;">
+        <!-- 二级分类由JavaScript动态填充 -->
+      </div>
+    </section>
+
+    <section id="imagesSection" style="margin-top: var(--spacing-lg); display: none;">
+      <div class="gallery-header">
+        <h3 id="imagesSectionTitle">分类图片</h3>
+        <div class="view-options">
+          <!-- 添加删除按钮 -->
+          <button id="deleteImagesBtn" class="btn btn-view" title="删除选中图片">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              <path d="M10 11v6"></path>
+              <path d="M14 11v6"></path>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+            </svg>
+          </button>
+          
+          <!-- 分页控制 -->
+          <div class="pagination-controls">
+            <button id="prevPageBtn" class="btn btn-icon" disabled title="上一页">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <div id="pageNumbers" class="pagination-numbers">
+              <!-- 页码将由 JavaScript 生成 -->
+            </div>
+            <button id="nextPageBtn" class="btn btn-icon" disabled title="下一页">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+          
+          <!-- 每页显示数量 -->
+          <select id="perPageLimit" class="form-control">
+            <option value="20">每页 20 张</option>
+            <option value="30">每页 30 张</option>
+            <option value="50" selected>每页 50 张</option>
+            <option value="100">每页 100 张</option>
+          </select>
+          
+          <!-- 视图切换按钮 -->
+          <button id="gridViewBtn" class="btn btn-view" title="网格视图">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </button>
+          <button id="listViewBtn" class="btn btn-view" title="列表视图">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <div id="imagesGallery" class="gallery-grid">
+        <!-- 图片由 JavaScript 渲染 -->
+      </div>
+      
+      <!-- 底部分页控制 -->
+      <div class="gallery-footer">
+        <div class="pagination">
+          <div id="paginationInfo">加载中...</div>
+        </div>
+        
+        <div class="view-options">
+          <!-- 底部删除按钮 -->
+          <button id="deleteImagesBtnBottom" class="btn btn-view" title="删除选中图片">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              <path d="M10 11v6"></path>
+              <path d="M14 11v6"></path>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+            </svg>
+          </button>
+          
+          <div class="pagination-controls">
+            <button id="prevPageBtnBottom" class="btn btn-icon" disabled title="上一页">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <div id="pageNumbersBottom" class="pagination-numbers">
+              <!-- 页码将由 JavaScript 生成 -->
+            </div>
+            <button id="nextPageBtnBottom" class="btn btn-icon" disabled title="下一页">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Optimized script loading for better performance -->
+  <script src="/js/auth-check.js" async></script>
+  <script src="/js/main.js" defer></script>
+  <script src="/js/dark-mode.js" defer></script>
+  <script src="/js/categories.js" defer></script>
+</body>
+</html> 

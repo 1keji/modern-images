@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis缓存管理 - 现代图床</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .redis-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .status-connected {
+            background-color: #4CAF50;
+        }
+        
+        .status-disconnected {
+            background-color: #f44336;
+        }
+        
+        .status-disabled {
+            background-color: #9e9e9e;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-label {
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .stat-value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .cache-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .action-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+        
+        .action-card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .action-card p {
+            margin: 0 0 15px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-danger:hover {
+            background-color: #d32f2f;
+        }
+        
+        .btn-warning {
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-warning:hover {
+            background-color: #f57c00;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .refresh-button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .refresh-button:hover {
+            background-color: #1976D2;
+        }
+        
+        .memory-usage {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .memory-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #FFC107, #f44336);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container header-content">
+            <a href="/" class="logo">现代图床</a>
+            <nav class="nav">
+                <a href="/" class="btn btn-outline">上传</a>
+                <a href="/gallery" class="btn btn-outline">图片库</a>
+                <a href="/categories" class="btn btn-outline">分类管理</a>
+                <a href="/admin-center" class="btn btn-outline">管理中心</a>
+                <a href="/redis-management" class="btn btn-outline">Redis管理</a>
+                <a href="/settings" class="btn btn-outline">系统设置</a>
+                <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
+                <a href="/logout" class="btn btn-outline">退出</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>Redis缓存管理</h1>
+        
+        <button class="refresh-button" onclick="loadRedisStatus()">
+            🔄 刷新状态
+        </button>
+        
+        <div id="alerts"></div>
+        
+        <div class="redis-stats" id="redisStats">
+            <div class="stat-card">
+                <h3>连接状态</h3>
+                <div class="stat-item">
+                    <span class="stat-label">状态</span>
+                    <span class="stat-value" id="connectionStatus">
+                        <span class="status-indicator status-disconnected"></span>
+                        检查中...
+                    </span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">主机</span>
+                    <span class="stat-value" id="redisHost">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">端口</span>
+                    <span class="stat-value" id="redisPort">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">数据库</span>
+                    <span class="stat-value" id="redisDb">-</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>内存使用</h3>
+                <div class="stat-item">
+                    <span class="stat-label">已用内存</span>
+                    <span class="stat-value" id="usedMemory">-</span>
+                </div>
+                <div class="memory-usage">
+                    <div class="memory-bar" id="memoryBar" style="width: 0%"></div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">最大内存</span>
+                    <span class="stat-value" id="maxMemory">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">淘汰策略</span>
+                    <span class="stat-value" id="maxMemoryPolicy">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">内存碎片率</span>
+                    <span class="stat-value" id="memFragRatio">-</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>键统计</h3>
+                <div class="stat-item">
+                    <span class="stat-label">总键数</span>
+                    <span class="stat-value" id="totalKeys">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">已过期键</span>
+                    <span class="stat-value" id="expiredKeys">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">已淘汰键</span>
+                    <span class="stat-value" id="evictedKeys">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">命中率</span>
+                    <span class="stat-value" id="hitRate">-</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>性能统计</h3>
+                <div class="stat-item">
+                    <span class="stat-label">总连接数</span>
+                    <span class="stat-value" id="totalConnections">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">总命令数</span>
+                    <span class="stat-value" id="totalCommands">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">每秒命令数</span>
+                    <span class="stat-value" id="commandsPerSec">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">网络输入</span>
+                    <span class="stat-value" id="networkInput">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="cache-actions">
+            <div class="action-card">
+                <h4>内存配置</h4>
+                <p>动态调整Redis内存限制和淘汰策略</p>
+                <div style="margin-bottom: 10px;">
+                    <input type="text" id="maxMemoryInput" placeholder="如: 512mb, 1gb" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <select id="maxMemoryPolicySelect" style="width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">选择淘汰策略</option>
+                        <option value="noeviction">noeviction (不淘汰)</option>
+                        <option value="allkeys-lru">allkeys-lru (LRU所有键)</option>
+                        <option value="allkeys-lfu">allkeys-lfu (LFU所有键)</option>
+                        <option value="allkeys-random">allkeys-random (随机所有键)</option>
+                        <option value="volatile-lru">volatile-lru (LRU过期键)</option>
+                        <option value="volatile-lfu">volatile-lfu (LFU过期键)</option>
+                        <option value="volatile-random">volatile-random (随机过期键)</option>
+                        <option value="volatile-ttl">volatile-ttl (TTL过期键)</option>
+                    </select>
+                </div>
+                <button class="btn-warning" onclick="configureRedisMemory()">
+                    应用配置
+                </button>
+            </div>
+            
+            <div class="action-card">
+                <h4>清除图片缓存</h4>
+                <p>清除所有图片列表相关的缓存数据</p>
+                <button class="btn-warning" onclick="invalidateImageCache()">
+                    清除图片缓存
+                </button>
+            </div>
+            
+            <div class="action-card">
+                <h4>清除配置缓存</h4>
+                <p>清除系统配置相关的缓存数据</p>
+                <button class="btn-warning" onclick="invalidateConfigCache()">
+                    清除配置缓存
+                </button>
+            </div>
+            
+            <div class="action-card">
+                <h4>清空所有缓存</h4>
+                <p>⚠️ 这将删除Redis中的所有数据</p>
+                <button class="btn-danger" onclick="flushAllCache()">
+                    清空所有缓存
+                </button>
+            </div>
+
+            <div class="action-card">
+                <h4>缓存过期时间配置</h4>
+                <p>调整不同类型缓存的默认过期时间(TTL)</p>
+                
+                <div id="ttlConfigForm" style="text-align: left;">
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 3px; font-weight: 500;">图片列表缓存 (秒)</label>
+                        <input type="number" id="imageListTtl" min="60" max="86400" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                        <small style="color: #666;">当前: <span id="currentImageListTtl">3600</span>秒 (<span id="currentImageListTtlDesc">1小时</span>)</small>
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 3px; font-weight: 500;">图片信息缓存 (秒)</label>
+                        <input type="number" id="imageInfoTtl" min="300" max="172800" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                        <small style="color: #666;">当前: <span id="currentImageInfoTtl">7200</span>秒 (<span id="currentImageInfoTtlDesc">2小时</span>)</small>
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 3px; font-weight: 500;">系统配置缓存 (秒)</label>
+                        <input type="number" id="configTtl" min="60" max="7200" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                        <small style="color: #666;">当前: <span id="currentConfigTtl">1800</span>秒 (<span id="currentConfigTtlDesc">30分钟</span>)</small>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 3px; font-weight: 500;">API缓存 (秒)</label>
+                        <input type="number" id="apiCacheTtl" min="30" max="3600" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                        <small style="color: #666;">当前: <span id="currentApiCacheTtl">600</span>秒 (<span id="currentApiCacheTtlDesc">10分钟</span>)</small>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn-warning" onclick="updateTtlConfig()" style="flex: 1; min-width: 120px;">
+                        更新TTL配置
+                    </button>
+                    <button class="btn-warning" onclick="resetTtlConfig()" style="flex: 1; min-width: 120px;" title="重新从环境变量加载TTL配置">
+                        重置为环境变量
+                    </button>
+                </div>
+            </div>
+
+            <div class="action-card">
+                <h4>缓存键管理</h4>
+                <p>查看和管理当前的缓存键及其TTL信息</p>
+                
+                <div style="margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 10px;">
+                    <button class="btn-warning" onclick="loadCacheInfo()" style="flex: 1; min-width: 120px;">
+                        加载缓存信息
+                    </button>
+                    <button class="btn-warning" onclick="showCacheDetails()" style="flex: 1; min-width: 120px;">
+                        显示详细信息
+                    </button>
+                </div>
+                
+                <div id="cacheInfoContainer" style="display: none; text-align: left; max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #f9f9f9;">
+                    <div id="cacheInfoContent"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <a href="/" class="button">返回首页</a>
+            <a href="/debug" class="button">调试页面</a>
+        </div>
+    </div>
+
+    <script>
+        let isLoading = false;
+
+        function showAlert(message, type = 'success') {
+            const alertsContainer = document.getElementById('alerts');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            alertsContainer.innerHTML = '';
+            alertsContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        async function loadRedisStatus() {
+            if (isLoading) return;
+            isLoading = true;
+            
+            const refreshButton = document.querySelector('.refresh-button');
+            if (refreshButton) {
+                refreshButton.textContent = '🔄 加载中...';
+                refreshButton.disabled = true;
+            }
+            
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+                
+                const response = await fetch('/api/debug/redis-status', {
+                    signal: controller.signal,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateRedisStatus(data.redis);
+                } else {
+                    showAlert('获取Redis状态失败: ' + (data.message || '未知错误'), 'error');
+                    updateRedisStatus({ enabled: false, connected: false, error: data.message || '未知错误' });
+                }
+            } catch (error) {
+                let errorMessage = '网络连接失败';
+                if (error.name === 'AbortError') {
+                    errorMessage = '请求超时';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                console.error('获取Redis状态失败:', error);
+                showAlert('获取Redis状态失败: ' + errorMessage, 'error');
+                updateRedisStatus({ enabled: false, connected: false, error: errorMessage });
+            } finally {
+                isLoading = false;
+                if (refreshButton) {
+                    refreshButton.textContent = '🔄 刷新状态';
+                    refreshButton.disabled = false;
+                }
+            }
+        }
+
+        function updateRedisStatus(redisData) {
+            const connectionStatus = document.getElementById('connectionStatus');
+            const indicator = connectionStatus.querySelector('.status-indicator');
+            
+            if (!redisData.enabled) {
+                indicator.className = 'status-indicator status-disabled';
+                connectionStatus.innerHTML = '<span class="status-indicator status-disabled"></span>未启用';
+                document.getElementById('redisHost').textContent = '-';
+                document.getElementById('redisPort').textContent = '-';
+                document.getElementById('redisDb').textContent = '-';
+                showAlert('Redis未启用。请检查配置文件和环境变量。', 'warning');
+            } else if (!redisData.connected) {
+                indicator.className = 'status-indicator status-disconnected';
+                connectionStatus.innerHTML = '<span class="status-indicator status-disconnected"></span>连接失败';
+                document.getElementById('redisHost').textContent = redisData.config?.host || '-';
+                document.getElementById('redisPort').textContent = redisData.config?.port || '-';
+                document.getElementById('redisDb').textContent = redisData.config?.db || '-';
+                showAlert('Redis连接失败: ' + (redisData.error || '未知错误'), 'error');
+            } else {
+                indicator.className = 'status-indicator status-connected';
+                connectionStatus.innerHTML = '<span class="status-indicator status-connected"></span>已连接';
+                document.getElementById('redisHost').textContent = redisData.config.host;
+                document.getElementById('redisPort').textContent = redisData.config.port;
+                document.getElementById('redisDb').textContent = redisData.config.db;
+                
+                // 更新内存信息
+                if (redisData.memoryInfo) {
+                    const usedMemory = parseInt(redisData.memoryInfo.used_memory || 0);
+                    const maxMemory = parseInt(redisData.memoryInfo.maxmemory || 0);
+                    
+                    document.getElementById('usedMemory').textContent = formatBytes(usedMemory);
+                    document.getElementById('maxMemory').textContent = maxMemory > 0 ? formatBytes(maxMemory) : '无限制';
+                    document.getElementById('maxMemoryPolicy').textContent = redisData.memoryInfo['maxmemory-policy'] || '-';
+                    document.getElementById('memFragRatio').textContent = redisData.memoryInfo.mem_fragmentation_ratio || '-';
+                    
+                    // 更新内存使用条
+                    if (maxMemory > 0) {
+                        const percentage = (usedMemory / maxMemory) * 100;
+                        document.getElementById('memoryBar').style.width = Math.min(percentage, 100) + '%';
+                    } else {
+                        document.getElementById('memoryBar').style.width = '0%';
+                    }
+                }
+                
+                // 更新键统计
+                if (redisData.keyspaceInfo) {
+                    const dbInfo = redisData.keyspaceInfo[`db${redisData.config.db}`];
+                    if (dbInfo) {
+                        const keyMatch = dbInfo.match(/keys=(\d+)/);
+                        const totalKeys = keyMatch ? parseInt(keyMatch[1]) : 0;
+                        document.getElementById('totalKeys').textContent = formatNumber(totalKeys);
+                    } else {
+                        document.getElementById('totalKeys').textContent = '0';
+                    }
+                }
+                
+                // 更新统计信息
+                if (redisData.statsInfo) {
+                    document.getElementById('expiredKeys').textContent = formatNumber(parseInt(redisData.statsInfo.expired_keys || 0));
+                    document.getElementById('evictedKeys').textContent = formatNumber(parseInt(redisData.statsInfo.evicted_keys || 0));
+                    document.getElementById('totalConnections').textContent = formatNumber(parseInt(redisData.statsInfo.total_connections_received || 0));
+                    document.getElementById('totalCommands').textContent = formatNumber(parseInt(redisData.statsInfo.total_commands_processed || 0));
+                    
+                    // 计算命中率
+                    const hits = parseInt(redisData.statsInfo.keyspace_hits || 0);
+                    const misses = parseInt(redisData.statsInfo.keyspace_misses || 0);
+                    const total = hits + misses;
+                    const hitRate = total > 0 ? ((hits / total) * 100).toFixed(1) + '%' : '-';
+                    document.getElementById('hitRate').textContent = hitRate;
+                    
+                    // 计算每秒命令数（简单估算）
+                    const commandsPerSec = parseInt(redisData.statsInfo.instantaneous_ops_per_sec || 0);
+                    document.getElementById('commandsPerSec').textContent = formatNumber(commandsPerSec);
+                }
+                
+                // 更新网络统计
+                if (redisData.statsInfo) {
+                    const networkInput = parseInt(redisData.statsInfo.total_net_input_bytes || 0);
+                    document.getElementById('networkInput').textContent = formatBytes(networkInput);
+                }
+                
+                // 预填充内存配置输入框
+                if (redisData.memoryInfo) {
+                    const maxMemoryInput = document.getElementById('maxMemoryInput');
+                    const maxMemoryPolicySelect = document.getElementById('maxMemoryPolicySelect');
+                    
+                    if (maxMemoryInput && !maxMemoryInput.value) {
+                        const currentMaxMemory = redisData.memoryInfo.maxmemory;
+                        if (currentMaxMemory && currentMaxMemory !== '0') {
+                            // 转换字节为合适的单位
+                            const bytes = parseInt(currentMaxMemory);
+                            if (bytes >= 1024 * 1024 * 1024) {
+                                maxMemoryInput.placeholder = `当前: ${(bytes / (1024 * 1024 * 1024)).toFixed(1)}gb`;
+                            } else if (bytes >= 1024 * 1024) {
+                                maxMemoryInput.placeholder = `当前: ${(bytes / (1024 * 1024)).toFixed(0)}mb`;
+                            } else {
+                                maxMemoryInput.placeholder = `当前: ${bytes}b`;
+                            }
+                        }
+                    }
+                    
+                    if (maxMemoryPolicySelect) {
+                        const currentPolicy = redisData.memoryInfo['maxmemory-policy'];
+                        if (currentPolicy) {
+                            // 更新选择框的默认选项显示
+                            const defaultOption = maxMemoryPolicySelect.querySelector('option[value=""]');
+                            if (defaultOption) {
+                                defaultOption.textContent = `当前策略: ${currentPolicy}`;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 重置其他统计信息如果Redis不可用
+            if (!redisData.enabled || !redisData.connected) {
+                const fieldsToReset = [
+                    'usedMemory', 'maxMemory', 'maxMemoryPolicy', 'memFragRatio',
+                    'totalKeys', 'expiredKeys', 'evictedKeys', 'hitRate',
+                    'totalConnections', 'totalCommands', 'commandsPerSec', 'networkInput'
+                ];
+                
+                fieldsToReset.forEach(fieldId => {
+                    const element = document.getElementById(fieldId);
+                    if (element) {
+                        element.textContent = '-';
+                    }
+                });
+                
+                const memoryBar = document.getElementById('memoryBar');
+                if (memoryBar) {
+                    memoryBar.style.width = '0%';
+                }
+            }
+        }
+
+        async function invalidateImageCache() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch('/api/cache/invalidate-images', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    loadRedisStatus();
+                } else {
+                    showAlert('操作失败: ' + (data.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                let errorMessage = '操作失败';
+                if (error.name === 'AbortError') {
+                    errorMessage = '请求超时';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                showAlert(errorMessage, 'error');
+                console.error('清除图片缓存失败:', error);
+            }
+        }
+
+        async function invalidateConfigCache() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch('/api/cache/invalidate-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    loadRedisStatus();
+                } else {
+                    showAlert('操作失败: ' + (data.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                let errorMessage = '操作失败';
+                if (error.name === 'AbortError') {
+                    errorMessage = '请求超时';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                showAlert(errorMessage, 'error');
+                console.error('清除配置缓存失败:', error);
+            }
+        }
+
+        async function flushAllCache() {
+            if (!confirm('确定要清空所有Redis缓存数据吗？这个操作不可恢复！')) {
+                return;
+            }
+            
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch('/api/cache/flush', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    loadRedisStatus();
+                } else {
+                    showAlert('操作失败: ' + (data.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                let errorMessage = '操作失败';
+                if (error.name === 'AbortError') {
+                    errorMessage = '请求超时';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                showAlert(errorMessage, 'error');
+                console.error('清空所有缓存失败:', error);
+            }
+        }
+
+        async function configureRedisMemory() {
+            const maxMemory = document.getElementById('maxMemoryInput').value.trim();
+            const maxMemoryPolicy = document.getElementById('maxMemoryPolicySelect').value;
+            
+            if (!maxMemory && !maxMemoryPolicy) {
+                showAlert('请至少填写一项配置', 'warning');
+                return;
+            }
+            
+            // 验证内存格式
+            if (maxMemory) {
+                const memoryRegex = /^\d+(\.\d+)?(b|kb|mb|gb)$/i;
+                if (!memoryRegex.test(maxMemory)) {
+                    showAlert('内存格式不正确，请使用如: 512mb, 1gb 等格式', 'error');
+                    return;
+                }
+            }
+            
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const requestBody = {};
+                if (maxMemory) requestBody.maxMemory = maxMemory;
+                if (maxMemoryPolicy) requestBody.maxMemoryPolicy = maxMemoryPolicy;
+                
+                const response = await fetch('/api/redis/configure-memory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    // 清空输入框
+                    document.getElementById('maxMemoryInput').value = '';
+                    document.getElementById('maxMemoryPolicySelect').value = '';
+                    // 刷新状态
+                    loadRedisStatus();
+                } else {
+                    showAlert('配置失败: ' + (data.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                let errorMessage = '配置失败';
+                if (error.name === 'AbortError') {
+                    errorMessage = '请求超时';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                showAlert(errorMessage, 'error');
+                console.error('Redis内存配置失败:', error);
+            }
+        }
+
+        async function updateTtlConfig() {
+            try {
+                const ttlConfig = {
+                    imageList: parseInt(document.getElementById('imageListTtl').value) || null,
+                    imageInfo: parseInt(document.getElementById('imageInfoTtl').value) || null,
+                    config: parseInt(document.getElementById('configTtl').value) || null,
+                    apiCache: parseInt(document.getElementById('apiCacheTtl').value) || null
+                };
+
+                // 过滤掉空值
+                const filteredConfig = {};
+                for (const [key, value] of Object.entries(ttlConfig)) {
+                    if (value !== null && value > 0) {
+                        filteredConfig[key] = value;
+                    }
+                }
+
+                if (Object.keys(filteredConfig).length === 0) {
+                    showAlert('请至少填写一项TTL配置', 'warning');
+                    return;
+                }
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch('/api/redis/ttl-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ttlConfig: filteredConfig }),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    // 更新显示的当前值
+                    updateTtlDisplay(data.config);
+                    // 清空输入框
+                    document.getElementById('imageListTtl').value = '';
+                    document.getElementById('imageInfoTtl').value = '';
+                    document.getElementById('configTtl').value = '';
+                    document.getElementById('apiCacheTtl').value = '';
+                } else {
+                    showAlert('TTL配置更新失败: ' + (data.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                let errorMessage = 'TTL配置更新失败';
+                if (error.name === 'AbortError') {
+                    errorMessage = '请求超时';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                showAlert(errorMessage, 'error');
+                console.error('TTL配置更新失败:', error);
+            }
+        }
+
+        async function loadTtlConfig() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch('/api/redis/ttl-config', {
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateTtlDisplay(data.config);
+                    // 输出调试信息到控制台
+                    if (data.debug) {
+                        console.log('环境变量TTL配置:', data.debug.envConfig);
+                        console.log('当前TTL配置:', data.debug.currentConfig);
+                    }
+                }
+            } catch (error) {
+                console.error('加载TTL配置失败:', error);
+            }
+        }
+
+        async function resetTtlConfig() {
+            if (!confirm('确定要重置TTL配置吗？这将清除所有手动设置的值，重新从环境变量加载配置。')) {
+                return;
+            }
+            
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const response = await fetch('/api/redis/ttl-config/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    updateTtlDisplay(data.config);
+                } else {
+                    showAlert('TTL配置重置失败: ' + (data.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                let errorMessage = 'TTL配置重置失败';
+                if (error.name === 'AbortError') {
+                    errorMessage = '请求超时';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                showAlert(errorMessage, 'error');
+                console.error('TTL配置重置失败:', error);
+            }
+        }
+
+        function updateTtlDisplay(config) {
+            if (config) {
+                const imageListTtl = config.imageList || 3600;
+                const imageInfoTtl = config.imageInfo || 7200;
+                const configTtl = config.config || 1800;
+                const apiCacheTtl = config.apiCache || 600;
+
+                document.getElementById('currentImageListTtl').textContent = imageListTtl;
+                document.getElementById('currentImageInfoTtl').textContent = imageInfoTtl;
+                document.getElementById('currentConfigTtl').textContent = configTtl;
+                document.getElementById('currentApiCacheTtl').textContent = apiCacheTtl;
+
+                // 更新显示的时间描述
+                document.getElementById('currentImageListTtlDesc').textContent = formatTimeDescription(imageListTtl);
+                document.getElementById('currentImageInfoTtlDesc').textContent = formatTimeDescription(imageInfoTtl);
+                document.getElementById('currentConfigTtlDesc').textContent = formatTimeDescription(configTtl);
+                document.getElementById('currentApiCacheTtlDesc').textContent = formatTimeDescription(apiCacheTtl);
+            }
+        }
+
+
+        function formatTimeDescription(seconds) {
+            if (seconds < 60) return `${seconds}秒`;
+            if (seconds < 3600) {
+                const minutes = Math.round(seconds / 60);
+                return `${minutes}分钟`;
+            }
+            // 对于小时，如果大于48小时则同时显示天数和小时数，否则只显示小时
+            const hours = seconds / 3600;
+            if (hours < 48) {
+                const roundedHours = Math.round(hours * 10) / 10; // 保留1位小数
+                return roundedHours % 1 === 0 ? `${roundedHours}小时` : `${roundedHours}小时`;
+            } else {
+                const days = Math.floor(seconds / 86400);
+                const remainingHours = Math.round((seconds % 86400) / 3600);
+                if (remainingHours === 0) {
+                    return `${days}天`;
+                } else {
+                    return `${days}天${remainingHours}小时`;
+                }
+            }
+        }
+
+        function formatTime(seconds) {
+            if (seconds <= 0) return '已过期';
+            if (seconds === -1) return '永不过期';
+            
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            let result = '';
+            if (days > 0) result += `${days}天`;
+            if (hours > 0) result += `${hours}小时`;
+            if (minutes > 0) result += `${minutes}分钟`;
+            if (secs > 0 && days === 0) result += `${secs}秒`;
+            
+            return result || '刚刚';
+        }
+
+        let cacheInfoData = [];
+
+        async function loadCacheInfo() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                
+                const response = await fetch('/api/redis/cache-info', {
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    cacheInfoData = data.cacheInfo;
+                    showAlert(`成功加载${cacheInfoData.length}个缓存键的信息`, 'success');
+                    updateCacheInfoDisplay();
+                } else {
+                    showAlert('加载缓存信息失败: ' + (data.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                let errorMessage = '加载缓存信息失败';
+                if (error.name === 'AbortError') {
+                    errorMessage = '请求超时';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                showAlert(errorMessage, 'error');
+                console.error('加载缓存信息失败:', error);
+            }
+        }
+
+        function showCacheDetails() {
+            const container = document.getElementById('cacheInfoContainer');
+            if (container.style.display === 'none') {
+                if (cacheInfoData.length === 0) {
+                    showAlert('请先加载缓存信息', 'warning');
+                    return;
+                }
+                container.style.display = 'block';
+                updateCacheInfoDisplay();
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        function updateCacheInfoDisplay() {
+            const content = document.getElementById('cacheInfoContent');
+            if (cacheInfoData.length === 0) {
+                content.innerHTML = '<p style="color: #666;">暂无缓存数据</p>';
+                return;
+            }
+
+            let html = '<table style="width: 100%; border-collapse: collapse; font-size: 12px;">';
+            html += '<thead><tr style="background: #f0f0f0;"><th style="padding: 5px; border: 1px solid #ddd;">键名</th><th style="padding: 5px; border: 1px solid #ddd;">类型</th><th style="padding: 5px; border: 1px solid #ddd;">TTL</th><th style="padding: 5px; border: 1px solid #ddd;">状态</th></tr></thead>';
+            html += '<tbody>';
+            
+            for (const cache of cacheInfoData) {
+                const statusColor = cache.expired ? '#f44336' : (cache.ttl === -1 ? '#2196F3' : '#4CAF50');
+                const statusText = cache.expired ? '已过期' : (cache.ttl === -1 ? '永不过期' : '正常');
+                
+                html += `<tr>`;
+                html += `<td style="padding: 3px; border: 1px solid #ddd; word-break: break-all;">${cache.key}</td>`;
+                html += `<td style="padding: 3px; border: 1px solid #ddd;">${cache.type}</td>`;
+                html += `<td style="padding: 3px; border: 1px solid #ddd;">${formatTime(cache.ttl)}</td>`;
+                html += `<td style="padding: 3px; border: 1px solid #ddd; color: ${statusColor};">${statusText}</td>`;
+                html += `</tr>`;
+            }
+            
+            html += '</tbody></table>';
+            content.innerHTML = html;
+        }
+
+        // 页面加载时获取Redis状态
+        document.addEventListener('DOMContentLoaded', function() {
+            // 页面可见性变化时的处理
+            let refreshInterval = null;
+            
+            function startAutoRefresh() {
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                }
+                refreshInterval = setInterval(() => {
+                    if (document.visibilityState === 'visible') {
+                        loadRedisStatus();
+                    }
+                }, 30000);
+            }
+            
+            function stopAutoRefresh() {
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                    refreshInterval = null;
+                }
+            }
+            
+            // 初始加载
+            loadRedisStatus();
+            
+            // 加载TTL配置
+            loadTtlConfig();
+            
+            // 启动自动刷新
+            startAutoRefresh();
+            
+            // 页面可见性变化时的处理
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    loadRedisStatus();
+                    startAutoRefresh();
+                } else {
+                    stopAutoRefresh();
+                }
+            });
+            
+            // 页面卸载时清理定时器
+            window.addEventListener('beforeunload', function() {
+                stopAutoRefresh();
+            });
+        });
+    </script>
+    <script src="/js/dark-mode.js"></script>
+</body>
+</html> 

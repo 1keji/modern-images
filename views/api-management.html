@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API管理 - 图床</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234361ee'><path d='M4 5h13v7h2V5c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h8v-2H4V5zm19 7v10c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V12c0-1.1.9-2 2-2h13c1.1 0 2 .9 2 2zm-2 0H8v10h13V12z'/></svg>">
+  <style>
+    .token-container {
+      word-break: break-all;
+      background-color: var(--bg-secondary);
+      padding: 10px;
+      border-radius: var(--border-radius);
+      margin-bottom: var(--spacing-md);
+    }
+    .api-switch {
+      margin-bottom: var(--spacing-lg);
+    }
+    .token-list {
+      margin-top: var(--spacing-lg);
+    }
+    .token-item {
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      background-color: var(--bg-secondary);
+      transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+    }
+    .token-item:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--box-shadow);
+    }
+    .new-token-value {
+      background-color: var(--bg-secondary);
+      border: 1px dashed var(--primary-light);
+      padding: var(--spacing-sm);
+      margin: var(--spacing-sm) 0;
+      font-family: monospace;
+      border-radius: var(--border-radius);
+    }
+    .copy-btn {
+      cursor: pointer;
+    }
+    .picgo-info {
+      margin-top: var(--spacing-lg);
+      padding: var(--spacing-md);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      background-color: var(--bg-secondary);
+    }
+    .form-check-input {
+      margin-right: var(--spacing-sm);
+      height: 20px;
+      width: 40px;
+      cursor: pointer;
+      appearance: none;
+      background-color: var(--gray-400);
+      border-radius: 20px;
+      position: relative;
+      transition: background-color 0.3s;
+    }
+    .form-check-input:checked {
+      background-color: var(--primary-color);
+    }
+    .form-check-input:before {
+      content: '';
+      position: absolute;
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+    }
+    .form-check-input:checked:before {
+      transform: translateX(20px);
+    }
+    .form-check-label {
+      cursor: pointer;
+      font-weight: 500;
+    }
+    code {
+      background-color: var(--bg-secondary);
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
+    .format-radio-group {
+      margin-top: var(--spacing-md);
+      padding: var(--spacing-md);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      background-color: var(--bg-secondary);
+    }
+    .format-radio-group .radio-item {
+      display: inline-block;
+      margin-right: var(--spacing-md);
+    }
+    .format-radio-group input[type="radio"] {
+      margin-right: var(--spacing-xs);
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="logo">现代图床</a>
+      <nav class="nav">
+        <a href="/" class="btn btn-outline">上传</a>
+        <a href="/gallery" class="btn btn-outline">我的图片库</a>
+        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/admin-center" class="btn btn-outline">管理中心</a>
+        <a href="/api-management" class="btn btn-outline">API管理</a>
+        <a href="/settings" class="btn btn-outline">系统设置</a>
+        <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
+        <a href="/logout" class="btn btn-outline">退出</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>API管理</h1>
+    
+    <div class="row" style="display: flex; gap: var(--spacing-lg); flex-wrap: wrap;">
+      <div style="flex: 2; min-width: 300px;">
+        <div class="card" style="background-color: var(--bg-color); border-radius: var(--border-radius); box-shadow: var(--box-shadow); margin-bottom: var(--spacing-lg);">
+          <div style="padding: var(--spacing-md);">
+            <h2 style="margin-bottom: var(--spacing-sm);">API状态</h2>
+            <div class="api-switch" style="display: flex; align-items: center;">
+              <input class="form-check-input" type="checkbox" id="apiEnabledSwitch">
+              <label class="form-check-label" for="apiEnabledSwitch">启用API</label>
+            </div>
+            
+            <div id="apiDisabledWarning" style="display: none; background-color: #fff3cd; color: #856404; padding: var(--spacing-md); border-radius: var(--border-radius); margin-top: var(--spacing-md);">
+              API功能当前已禁用，即使有有效的令牌也无法访问API。
+            </div>
+
+            <div class="format-radio-group">
+              <h3 style="margin-bottom: var(--spacing-sm);">API上传图片格式设置</h3>
+              <div class="radio-item">
+                <input type="radio" name="defaultFormat" value="original" id="format-original">
+                <label for="format-original">保持原始格式</label>
+              </div>
+              <div class="radio-item">
+                <input type="radio" name="defaultFormat" value="webp" id="format-webp">
+                <label for="format-webp">转为WebP</label>
+              </div>
+              <div class="radio-item">
+                <input type="radio" name="defaultFormat" value="avif" id="format-avif">
+                <label for="format-avif">转为AVIF</label>
+              </div>
+              <p style="margin-top: var(--spacing-sm); color: var(--text-secondary);">
+                此设置将应用于所有通过API上传的图片。如果API请求中未指定format参数，将使用此默认设置。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="background-color: var(--bg-color); border-radius: var(--border-radius); box-shadow: var(--box-shadow); margin-bottom: var(--spacing-lg);">
+          <div style="padding: var(--spacing-md);">
+            <h2 style="margin-bottom: var(--spacing-sm);">创建新令牌</h2>
+            <form id="createTokenForm">
+              <div style="margin-bottom: var(--spacing-md);">
+                <label for="tokenName" style="display: block; margin-bottom: var(--spacing-xs); font-weight: 500; color: var(--text-secondary);">令牌名称</label>
+                <input type="text" class="form-control" id="tokenName" placeholder="例如：PicGo客户端" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--input-border-radius); background-color: var(--bg-color); color: var(--text-color);">
+                <div style="color: var(--text-secondary); font-size: 0.9em; margin-top: 4px;">用于标识此令牌的用途</div>
+              </div>
+              <button type="submit" class="btn btn-primary">创建令牌</button>
+            </form>
+            
+            <div id="newTokenInfo" style="display: none;">
+              <div style="background-color: #d4edda; color: #155724; padding: var(--spacing-md); border-radius: var(--border-radius); margin-top: var(--spacing-md);">
+                <p><strong>新令牌已创建!</strong> 请保存此令牌，它只会显示一次。</p>
+                <div class="new-token-value" id="newTokenValue"></div>
+                <button class="btn btn-secondary" onclick="copyNewToken()">
+                  复制令牌
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="background-color: var(--bg-color); border-radius: var(--border-radius); box-shadow: var(--box-shadow);">
+          <div style="padding: var(--spacing-md);">
+            <h2 style="margin-bottom: var(--spacing-sm);">现有令牌</h2>
+            <div id="tokenList" class="token-list">
+              <div style="text-align: center; padding: var(--spacing-md); color: var(--text-secondary);" id="noTokensMessage">
+                暂无令牌
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="flex: 1; min-width: 250px;">
+        <div class="card" style="background-color: var(--bg-color); border-radius: var(--border-radius); box-shadow: var(--box-shadow); margin-bottom: var(--spacing-lg);">
+          <div style="padding: var(--spacing-md);">
+            <h2 style="margin-bottom: var(--spacing-sm);">API使用说明</h2>
+            <p>您可以通过API上传图片，方便与第三方工具集成。</p>
+            
+            <div class="picgo-info">
+              <h3 style="margin-bottom: var(--spacing-sm);">PicGo设置</h3>
+              <p>在PicGo中添加自定义图床：</p>
+              <ul style="padding-left: var(--spacing-lg);">
+                <li><strong>上传地址</strong>: <code id="apiEndpoint"></code></li>
+                <li><strong>请求方式</strong>: POST</li>
+                <li><strong>自定义请求头</strong>: <code>x-api-token</code> 填入您的令牌</li>
+                <li><strong>图片上传字段名</strong>: images</li>
+                <li><strong>自定义URL部分</strong>: <code>picgo=true</code></li>
+                <li><strong>返回值字段</strong>: result</li>
+              </ul>
+            </div>
+
+            <h3 style="margin: var(--spacing-md) 0 var(--spacing-sm);">API端点</h3>
+            <ul style="padding-left: var(--spacing-lg);">
+              <li><code>/api/upload</code> - 上传图片</li>
+              <li>可选参数 <code>format</code>: 
+                <ul style="margin-top: var(--spacing-xs);">
+                  <li><code>original</code> - 保持原始格式</li>
+                  <li><code>webp</code> - 转换为WebP格式</li>
+                  <li><code>avif</code> - 转换为AVIF格式</li>
+                </ul>
+              </li>
+            </ul>
+            
+            <h3 style="margin: var(--spacing-md) 0 var(--spacing-sm);">认证方式</h3>
+            <p>使用以下任一方式提供令牌：</p>
+            <ul style="padding-left: var(--spacing-lg);">
+              <li>请求头: <code>x-api-token: 您的令牌</code></li>
+              <li>URL参数: <code>?token=您的令牌</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 更新API端点URL
+      const baseUrl = window.location.origin;
+      document.getElementById('apiEndpoint').textContent = baseUrl + '/api/upload';
+
+      // 不在这里立即获取API状态，而是在认证检查成功后获取
+      
+      // 设置表单提交事件
+      document.getElementById('createTokenForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createToken();
+      });
+      
+      // 设置API切换开关事件
+      document.getElementById('apiEnabledSwitch').addEventListener('change', function() {
+        toggleApiStatus();
+      });
+
+      // 设置格式选择事件
+      document.getElementsByName('defaultFormat').forEach(radio => {
+        radio.addEventListener('change', function() {
+          updateDefaultFormat(this.value);
+        });
+      });
+      
+      // 添加复制功能函数
+      function copyToClipboard(text, successMessage) {
+        if (!text) {
+          showToast('没有可复制的内容', 'error');
+          return;
+        }
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text)
+            .then(() => showToast(successMessage))
+            .catch((err) => {
+              console.error('复制失败:', err);
+              fallbackCopy(text, successMessage);
+            });
+        } else {
+          fallbackCopy(text, successMessage);
+        }
+      }
+      
+      function fallbackCopy(text, successMessage) {
+        try {
+          const textArea = document.createElement('textarea');
+          textArea.value = text;
+          textArea.style.position = 'fixed';
+          textArea.style.top = '0';
+          textArea.style.left = '0';
+          textArea.style.opacity = '0';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          
+          const successful = document.execCommand('copy');
+          if (successful) {
+            showToast(successMessage);
+          } else {
+            showToast('复制失败，请手动复制', 'error');
+          }
+          
+          document.body.removeChild(textArea);
+        } catch (err) {
+          console.error('备用复制方法失败:', err);
+          showToast('复制失败，请手动复制', 'error');
+        }
+      }
+
+      // 添加复制新令牌的函数
+      window.copyNewToken = function() {
+        const tokenValue = document.getElementById('newTokenValue').textContent;
+        copyToClipboard(tokenValue, '令牌已复制到剪贴板');
+      };
+
+      // 添加复制现有令牌的函数
+      window.copyExistingToken = function(token) {
+        copyToClipboard(token, '令牌已复制到剪贴板');
+      };
+    
+    // 获取API状态和令牌列表
+    function fetchApiStatus() {
+      console.log('开始获取API状态...');
+      
+      return fetch('/api/tokens')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('API状态数据:', data);
+          if (data.success) {
+            // 更新API开关状态
+            const apiSwitch = document.getElementById('apiEnabledSwitch');
+            if (apiSwitch) {
+              // 暂时移除事件监听器，避免触发切换事件
+              const newSwitch = apiSwitch.cloneNode(true);
+              apiSwitch.parentNode.replaceChild(newSwitch, apiSwitch);
+              newSwitch.checked = data.enabled;
+              // 重新添加事件监听器
+              newSwitch.addEventListener('change', toggleApiStatus);
+              console.log('API开关状态设置为:', data.enabled);
+            }
+            
+            const warningDiv = document.getElementById('apiDisabledWarning');
+            if (warningDiv) {
+              warningDiv.style.display = data.enabled ? 'none' : 'block';
+            }
+            
+            // 更新默认格式选择
+            const formatRadios = document.getElementsByName('defaultFormat');
+            formatRadios.forEach(radio => {
+              radio.checked = radio.value === (data.defaultFormat || 'original');
+            });
+            console.log('默认格式设置为:', data.defaultFormat || 'original');
+            
+            // 更新令牌列表
+            renderTokenList(data.tokens || []);
+            console.log('令牌列表已更新，共', (data.tokens || []).length, '个令牌');
+            
+            return data;
+          } else {
+            console.error('API状态获取失败:', data.message);
+            showToast('获取API状态失败: ' + (data.message || '未知错误'), 'error');
+            throw new Error(data.message || '未知错误');
+          }
+        })
+        .catch(error => {
+          console.error('获取API状态失败:', error);
+          showToast('获取API状态失败，请刷新页面重试', 'error');
+          throw error;
+        });
+    }
+    
+    // 渲染令牌列表
+    function renderTokenList(tokens) {
+      const tokenListElem = document.getElementById('tokenList');
+      const noTokensMessage = document.getElementById('noTokensMessage');
+      
+      console.log('渲染令牌列表，共', tokens ? tokens.length : 0, '个令牌');
+      
+      if (!tokenListElem) {
+        console.error('找不到tokenList元素');
+        return;
+      }
+      
+      // 完全清空令牌列表容器
+      tokenListElem.innerHTML = '';
+      
+      if (!tokens || tokens.length === 0) {
+        // 显示"暂无令牌"消息
+        tokenListElem.innerHTML = '<div style="text-align: center; padding: var(--spacing-md); color: var(--text-secondary);" id="noTokensMessage">暂无令牌</div>';
+        return;
+      }
+      
+      // 渲染所有令牌
+      tokens.forEach(token => {
+        try {
+          const createdDate = new Date(token.createdAt).toLocaleString();
+          const expiresDate = token.expiresAt ? new Date(token.expiresAt).toLocaleString() : '永不过期';
+          
+          const tokenDiv = document.createElement('div');
+          tokenDiv.className = 'token-item';
+          tokenDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
+              <h3 style="margin: 0;">${escapeHtml(token.name || '未命名令牌')}</h3>
+              <button class="btn btn-secondary delete-token-btn" data-token-id="${escapeHtml(token.id)}">删除</button>
+            </div>
+            <div class="token-container" onclick="copyExistingToken('${escapeHtml(token.token)}')" style="cursor: pointer;" title="点击复制令牌">${escapeHtml(token.token)}</div>
+            <div style="font-size: 0.9em; color: var(--text-secondary);">
+              <div>创建时间: ${createdDate}</div>
+              <div>过期时间: ${expiresDate}</div>
+            </div>
+          `;
+          
+          tokenListElem.appendChild(tokenDiv);
+        } catch (error) {
+          console.error('渲染令牌项目失败:', error, token);
+        }
+      });
+
+      // 添加删除按钮事件监听器
+      tokenListElem.querySelectorAll('.delete-token-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const tokenId = this.dataset.tokenId;
+          if (confirm('确定要删除此令牌吗？此操作不可恢复。')) {
+            deleteToken(tokenId);
+          }
+        });
+      });
+    }
+    
+    // HTML转义函数
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // 创建新令牌
+    function createToken() {
+      const tokenName = document.getElementById('tokenName').value.trim();
+      
+      if (!tokenName) {
+        showToast('请输入令牌名称', 'error');
+        return;
+      }
+      
+      console.log('创建新令牌:', tokenName);
+      
+      fetch('/api/tokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: tokenName
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('创建令牌响应:', data);
+        if (data.success) {
+          // 显示新创建的令牌
+          const newTokenValueElem = document.getElementById('newTokenValue');
+          const newTokenInfoElem = document.getElementById('newTokenInfo');
+          
+          if (newTokenValueElem && newTokenInfoElem) {
+            newTokenValueElem.textContent = data.token.token;
+            newTokenInfoElem.style.display = 'block';
+          }
+          
+          // 清空输入
+          const tokenNameInput = document.getElementById('tokenName');
+          if (tokenNameInput) {
+            tokenNameInput.value = '';
+          }
+          
+          // 显示成功消息
+          showToast('令牌创建成功', 'success');
+          
+          // 立即重新加载令牌列表
+          fetchApiStatus();
+        } else {
+          console.error('创建令牌失败:', data.message);
+          showToast('创建令牌失败: ' + (data.message || '未知错误'), 'error');
+        }
+      })
+      .catch(error => {
+        console.error('创建令牌请求失败:', error);
+        showToast('创建令牌请求失败，请稍后再试', 'error');
+      });
+    }
+    
+    // 切换API状态
+    function toggleApiStatus() {
+      console.log('切换API状态...');
+      
+      fetch('/api/toggle', {
+        method: 'POST'
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('API状态切换响应:', data);
+        if (data.success) {
+          // 更新开关状态和警告消息
+          const apiSwitch = document.getElementById('apiEnabledSwitch');
+          const warningDiv = document.getElementById('apiDisabledWarning');
+          
+          if (apiSwitch) {
+            apiSwitch.checked = data.enabled;
+          }
+          
+          if (warningDiv) {
+            warningDiv.style.display = data.enabled ? 'none' : 'block';
+          }
+          
+          // 显示状态切换成功的提示
+          const statusText = data.enabled ? '已启用' : '已关闭';
+          showToast(`API ${statusText}`, 'success');
+          
+          console.log('API状态已切换为:', data.enabled);
+        } else {
+          console.error('切换API状态失败:', data.message);
+          showToast('切换API状态失败: ' + (data.message || '未知错误'), 'error');
+          // 重置开关状态
+          fetchApiStatus();
+        }
+      })
+      .catch(error => {
+        console.error('切换API状态请求失败:', error);
+        showToast('切换API状态请求失败，请稍后再试', 'error');
+        // 重置开关状态
+        fetchApiStatus();
+      });
+    }
+
+    // 更新默认格式
+    function updateDefaultFormat(format) {
+      fetch('/api/format', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ format })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showToast('默认格式设置已更新');
+        } else {
+          alert('更新默认格式失败: ' + (data.message || '未知错误'));
+          // 重置格式选择
+          fetchApiStatus();
+        }
+      })
+      .catch(error => {
+        console.error('更新默认格式请求失败:', error);
+        alert('更新默认格式请求失败，请稍后再试');
+        // 重置格式选择
+        fetchApiStatus();
+      });
+    }
+    
+    // 删除令牌
+    function deleteToken(tokenId) {
+      console.log('删除令牌:', tokenId);
+      
+      fetch(`/api/tokens/${tokenId}`, {
+        method: 'DELETE'
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('删除令牌响应:', data);
+        if (data.success) {
+          showToast('令牌删除成功', 'success');
+          // 立即重新加载令牌列表
+          fetchApiStatus();
+        } else {
+          console.error('删除令牌失败:', data.message);
+          showToast('删除令牌失败: ' + (data.message || '未知错误'), 'error');
+        }
+      })
+      .catch(error => {
+        console.error('删除令牌请求失败:', error);
+        showToast('删除令牌请求失败，请稍后再试', 'error');
+      });
+    }
+
+    // 提示消息功能
+    function showToast(message, type = 'success', duration = 3000) {
+      const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      
+      const icon = type === 'success' 
+        ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+      
+      toast.innerHTML = `
+        <div class="toast-icon">${icon}</div>
+        <div class="toast-content">
+          <div class="toast-title">${type === 'success' ? '成功' : '错误'}</div>
+          <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close">&times;</button>
+      `;
+      
+      toastContainer.appendChild(toast);
+      
+      // 触发重排以启用CSS过渡
+      toast.offsetHeight;
+      toast.classList.add('show');
+      
+      const closeBtn = toast.querySelector('.toast-close');
+      closeBtn.addEventListener('click', () => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      });
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    function createToastContainer() {
+      const container = document.createElement('div');
+      container.className = 'toast-container';
+      document.body.appendChild(container);
+      return container;
+    }
+
+    // 检查认证状态
+    async function checkAuthStatus() {
+      try {
+        const response = await fetch('/api/auth-status');
+        const data = await response.json();
+        
+        // 如果系统未配置，跳转到设置页面
+        if (!data.isConfigured) {
+          window.location.href = '/setup';
+          return false;
+        }
+        
+        // 如果用户未认证，跳转到登录页面
+        if (!data.isAuthenticated) {
+          window.location.href = '/login';
+          return false;
+        }
+        
+        return true;
+      } catch (error) {
+        console.error('检查认证状态失败:', error);
+        // 如果检查失败，也跳转到登录页面
+        window.location.href = '/login';
+        return false;
+      }
+    }
+
+    // 在页面加载时首先检查认证状态，然后获取API数据
+    checkAuthStatus().then(isAuthenticated => {
+      if (isAuthenticated) {
+        // 只有在认证成功后才获取API状态
+        fetchApiStatus();
+      }
+    });
+  });
+  </script>
+  <script src="/js/dark-mode.js"></script>
+</body>
+</html> 

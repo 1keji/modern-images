@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>调试信息 - 图床</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .debug-section {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    }
+    .debug-data {
+      background-color: #fff;
+      padding: 1rem;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+    .status-good { color: #28a745; }
+    .status-bad { color: #dc3545; }
+    .status-warning { color: #ffc107; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="logo">现代图床</a>
+      <nav class="nav">
+        <a href="/" class="btn btn-outline">首页</a>
+        <a href="/gallery" class="btn btn-outline">图片库</a>
+        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/admin-center" class="btn btn-outline">管理中心</a>
+        <a href="/settings" class="btn btn-outline">系统设置</a>
+        <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
+        <a href="/logout" class="btn btn-outline">退出</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>调试信息</h1>
+    
+    <div class="debug-section">
+      <h2>R2配置状态</h2>
+      <button onclick="loadR2Status()" class="btn btn-primary">刷新状态</button>
+      <div id="r2Status" class="debug-data">点击"刷新状态"查看配置信息</div>
+    </div>
+    
+    <div class="debug-section">
+      <h2>上传测试</h2>
+      <input type="file" id="debugFileInput" accept="image/*">
+      <button onclick="testUpload()" class="btn btn-secondary">测试上传</button>
+      <div id="uploadResult" class="debug-data"></div>
+    </div>
+    
+    <div class="debug-section">
+      <h2>说明</h2>
+      <ul>
+        <li>检查R2配置是否正确</li>
+        <li>测试上传功能并查看详细日志</li>
+        <li>如果R2上传失败，会自动回退到本地存储</li>
+        <li>确保R2 Bucket设置为公开访问</li>
+      </ul>
+    </div>
+  </main>
+
+  <script>
+    async function loadR2Status() {
+      try {
+        const response = await fetch('/api/debug/r2-status');
+        const data = await response.json();
+        document.getElementById('r2Status').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById('r2Status').textContent = '获取状态失败: ' + error.message;
+      }
+    }
+
+    async function testUpload() {
+      const fileInput = document.getElementById('debugFileInput');
+      const resultDiv = document.getElementById('uploadResult');
+      
+      if (!fileInput.files.length) {
+        resultDiv.textContent = '请先选择一个图片文件';
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('images', fileInput.files[0]);
+      
+      resultDiv.textContent = '正在上传...';
+      
+      try {
+        const response = await fetch('/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        resultDiv.textContent = JSON.stringify(result, null, 2);
+      } catch (error) {
+        resultDiv.textContent = '上传失败: ' + error.message;
+      }
+    }
+
+    // 页面加载时自动获取状态
+    window.addEventListener('load', loadR2Status);
+  </script>
+  <script src="/js/dark-mode.js"></script>
+</body>
+</html> 

@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统设置 - 现代图床</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234361ee'><path d='M4 5h13v7h2V5c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h8v-2H4V5zm19 7v10c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V12c0-1.1.9-2 2-2h13c1.1 0 2 .9 2 2zm-2 0H8v10h13V12z'/></svg>">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="logo">现代图床</a>
+      <nav class="nav">
+        <a href="/" class="btn btn-outline">首页</a>
+        <a href="/gallery" class="btn btn-outline">我的图片库</a>
+        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/admin-center" class="btn btn-outline">管理中心</a>
+        <a href="/settings" class="btn btn-primary">系统设置</a>
+        <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
+        <a href="/logout" class="btn btn-outline">退出</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container settings-container">
+    <div class="page-header">
+      <h1>系统设置</h1>
+      <p class="subtitle">管理图床系统的各项配置</p>
+    </div>
+
+    <div class="settings-layout">
+      <!-- 侧边栏导航 -->
+      <aside class="settings-sidebar">
+        <nav class="settings-nav">
+          <a href="#image-quality" class="nav-item active" data-section="image-quality">
+            <span class="nav-icon">🎨</span>
+            图片质量设置
+          </a>
+          <a href="#display-settings" class="nav-item" data-section="display-settings">
+            <span class="nav-icon">👁️</span>
+            显示设置
+          </a>
+          <a href="#image-domain" class="nav-item" data-section="image-domain">
+            <span class="nav-icon">🌐</span>
+            图片域名设置
+          </a>
+          <a href="#domain-security" class="nav-item" data-section="domain-security">
+            <span class="nav-icon">🔒</span>
+            域名安全设置
+          </a>
+          <a href="#category-management" class="nav-item" data-section="category-management">
+            <span class="nav-icon">🏷️</span>
+            分类管理
+          </a>
+          <a href="#storage-config" class="nav-item" data-section="storage-config">
+            <span class="nav-icon">💾</span>
+            存储配置
+          </a>
+          <a href="/admin-center" class="nav-item">
+            <span class="nav-icon">🎛️</span>
+            管理中心
+          </a>
+        </nav>
+      </aside>
+
+      <!-- 主要内容区域 -->
+      <div class="settings-content">
+        <!-- 图片质量设置 -->
+        <section id="image-quality-section" class="settings-section active">
+          <div class="section-header">
+            <h2>图片质量设置</h2>
+            <p class="section-description">配置图片格式转换时的质量参数，影响文件大小和图片质量</p>
+          </div>
+
+          <div class="config-content">
+            <form id="qualitySettingsForm">
+              <!-- WebP质量设置 -->
+              <div class="form-group">
+                <label for="webpQuality" class="form-label">
+                  WebP 质量
+                  <span class="quality-value" id="webpQualityValue">80</span>%
+                </label>
+                <div class="quality-control">
+                  <input type="range" id="webpQuality" name="webpQuality" min="10" max="100" value="80" class="quality-slider">
+                  <div class="quality-info">
+                    <span class="quality-desc" id="webpQualityDesc">高质量</span>
+                    <small class="quality-hint">推荐: 80-90（平衡质量与文件大小）</small>
+                  </div>
+                </div>
+              </div>
+
+              <!-- AVIF质量设置 -->
+              <div class="form-group">
+                <label for="avifQuality" class="form-label">
+                  AVIF 质量
+                  <span class="quality-value" id="avifQualityValue">75</span>%
+                </label>
+                <div class="quality-control">
+                  <input type="range" id="avifQuality" name="avifQuality" min="10" max="100" value="75" class="quality-slider">
+                  <div class="quality-info">
+                    <span class="quality-desc" id="avifQualityDesc">高质量</span>
+                    <small class="quality-hint">推荐: 70-80（AVIF压缩效率更高）</small>
+                  </div>
+                </div>
+              </div>
+
+              <!-- PNG优化设置 -->
+              <div class="form-group">
+                <label for="pngOptimize" class="form-label">PNG 优化</label>
+                <div class="checkbox-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="pngOptimize" name="pngOptimize" checked>
+                    <span class="checkmark"></span>
+                    启用PNG压缩优化（减小文件大小，不影响质量）
+                  </label>
+                </div>
+              </div>
+
+              <div class="action-buttons">
+                <button type="button" id="resetDefaults" class="btn btn-secondary">恢复默认</button>
+                <button type="submit" class="btn btn-primary">保存设置</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- 预设质量模板 -->
+          <div class="section-header">
+            <h3>质量预设</h3>
+            <p class="section-description">快速应用预定义的质量配置</p>
+          </div>
+
+          <div class="config-content">
+            <div class="preset-grid">
+              <div class="preset-card" data-preset="high">
+                <h4>高质量</h4>
+                <p class="preset-desc">WebP: 92%, AVIF: 85%</p>
+                <p class="preset-usage">适合：摄影作品、重要图片</p>
+                <button class="btn btn-outline preset-btn">应用</button>
+              </div>
+              
+              <div class="preset-card" data-preset="balanced">
+                <h4>平衡模式</h4>
+                <p class="preset-desc">WebP: 80%, AVIF: 75%</p>
+                <p class="preset-usage">适合：日常使用、网站图片</p>
+                <button class="btn btn-outline preset-btn">应用</button>
+              </div>
+              
+              <div class="preset-card" data-preset="compressed">
+                <h4>高压缩</h4>
+                <p class="preset-desc">WebP: 65%, AVIF: 60%</p>
+                <p class="preset-usage">适合：缩略图、大批量处理</p>
+                <button class="btn btn-outline preset-btn">应用</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 显示设置 -->
+        <section id="display-settings-section" class="settings-section">
+          <div class="section-header">
+            <h2>显示设置</h2>
+            <p class="section-description">配置首页最近上传图片的显示行为</p>
+          </div>
+
+          <div class="config-content">
+            <form id="displaySettingsForm">
+              <!-- 显示最近上传图片的开关 -->
+              <div class="form-group">
+                <div class="toggle-group">
+                  <label for="showRecentUploads" class="toggle-label">
+                    <span class="toggle-title">显示最近上传的图片</span>
+                    <span class="toggle-desc">控制首页是否显示历史上传的图片。关闭后仅显示本次上传的图片，刷新页面后不再显示历史记录</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="showRecentUploads" name="showRecentUploads" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 说明信息 -->
+              <div class="config-section" style="margin-top: 1.5rem;">
+                <div class="info-box">
+                  <h4>功能说明</h4>
+                  <ul>
+                    <li>✅ <strong>开启时：</strong>首页下方会显示最近上传的图片列表，刷新页面后仍然显示</li>
+                    <li>⚠️ <strong>关闭时：</strong>仅显示本次上传的图片，刷新页面后历史图片不再显示</li>
+                    <li>💡 <strong>提示：</strong>关闭此选项可以让首页更加简洁，适合只想快速上传和复制链接的场景</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- 保存按钮 -->
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="saveDisplaySettingsBtn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  保存设置
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- 图片域名设置 -->
+        <section id="image-domain-section" class="settings-section">
+          <div class="section-header">
+            <h2>图片域名设置</h2>
+            <p class="section-description">配置独立的图片域名，增强网站安全性并支持CDN分发</p>
+          </div>
+
+          <div class="config-content">
+            <form id="imageDomainForm">
+              <!-- 启用独立图片域名 -->
+              <div class="form-group">
+                <div class="toggle-group">
+                  <label for="enableImageDomain" class="toggle-label">
+                    <span class="toggle-title">启用独立图片域名</span>
+                    <span class="toggle-desc">使用独立域名提供图片服务，与主站域名分离</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="enableImageDomain" name="enableImageDomain">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 图片域名配置 -->
+              <div id="imageDomainConfig" class="form-group domain-config" style="display: none;">
+                <label for="imageDomain" class="form-label">
+                  图片域名
+                  <span class="required">*</span>
+                </label>
+                <input type="text" id="imageDomain" name="imageDomain" class="form-control" 
+                       placeholder="例如: img.example.com" autocomplete="off">
+                <small class="form-hint">
+                  请输入完整的域名，不需要包含协议前缀（http://或https://）
+                </small>
+              </div>
+
+              <!-- 备用图片域名配置 -->
+              <div id="backupDomainsConfig" class="form-group domain-config" style="display: none;">
+                <label class="form-label">
+                  备用图片域名
+                  <span class="optional">（可选）</span>
+                </label>
+                <div id="backupDomainsList" class="backup-domains-list">
+                  <!-- 动态生成的备用域名输入框 -->
+                </div>
+                <button type="button" id="addBackupDomain" class="btn btn-sm btn-outline">
+                  + 添加备用域名
+                </button>
+                <small class="form-hint">
+                  备用域名可以访问原有图片，但不能访问管理界面，新上传的图片不使用这些域名
+                </small>
+              </div>
+
+              <!-- HTTPS配置 -->
+              <div id="httpsConfig" class="form-group" style="display: none;">
+                <div class="toggle-group">
+                  <label for="httpsOnly" class="toggle-label">
+                    <span class="toggle-title">强制HTTPS</span>
+                    <span class="toggle-desc">图片链接始终使用HTTPS协议，推荐开启</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="httpsOnly" name="httpsOnly" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 配置示例 -->
+              <div id="domainExample" class="config-example" style="display: none;">
+                <h4>配置说明</h4>
+                <div class="example-content">
+                  <p><strong>DNS配置：</strong></p>
+                  <ul>
+                    <li>为图片域名添加A记录或CNAME记录，指向您的服务器</li>
+                    <li>如使用CDN，请将图片域名指向CDN地址</li>
+                  </ul>
+                  
+                  <p><strong>Web服务器配置：</strong></p>
+                  <ul>
+                    <li>Nginx：为图片域名添加server块，proxy_pass到图床服务</li>
+                    <li>Apache：为图片域名添加VirtualHost配置</li>
+                  </ul>
+                  
+                  <p><strong>安全建议：</strong></p>
+                  <ul>
+                    <li>为图片域名配置SSL证书</li>
+                    <li>设置适当的CORS策略</li>
+                    <li>考虑使用CDN提高访问速度</li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- 域名迁移选项 -->
+              <div id="urlMigrationSection" class="config-section" style="display: none;">
+                <h4>现有图片处理</h4>
+                <div class="migration-info">
+                  <div class="info-box info-box-info">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="16" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <div>
+                      <strong>域名配置原则：</strong>
+                      <ul>
+                        <li>✅ <strong>新上传的图片</strong>将自动使用当前配置的域名</li>
+                        <li>✅ <strong>现有图片</strong>保持原有的URL不变，确保已分享的链接继续有效</li>
+                        <li>⚠️ 只有在明确需要时才强制迁移现有图片的域名</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div class="migration-option">
+                    <h5>强制迁移现有图片（可选）</h5>
+                    <p class="migration-desc">
+                      如果您希望<strong>所有现有图片</strong>也使用新的域名配置，可以执行强制迁移。
+                      <br><strong>注意：</strong>此操作将覆盖所有现有图片的URL，可能会导致之前分享的链接失效。
+                    </p>
+                    
+                    <div class="warning-box">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                      <span>执行前请确保：新域名已正确配置并可访问</span>
+                    </div>
+                    
+                    <button type="button" id="migrateUrlsBtn" class="btn btn-warning">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10"></path>
+                        <path d="M3.51 15a9 9 0 0 0 14.85 3.36L23 14"></path>
+                      </svg>
+                      强制迁移所有图片到新域名
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 保存按钮 -->
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="saveImageDomainBtn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  保存设置
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- 域名安全设置 -->
+        <section id="domain-security-section" class="settings-section">
+          <div class="section-header">
+            <h2>域名安全设置</h2>
+            <p class="section-description">配置域名白名单，只允许指定域名访问网站，增强安全性</p>
+          </div>
+
+          <div class="config-content">
+            <form id="domainSecurityForm">
+              <!-- 启用域名安全验证 -->
+              <div class="form-group">
+                <div class="toggle-group">
+                  <label for="enableDomainSecurity" class="toggle-label">
+                    <span class="toggle-title">启用域名安全验证</span>
+                    <span class="toggle-desc">只允许白名单中的域名访问网站，拒绝其他域名请求</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="enableDomainSecurity" name="enableDomainSecurity">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 域名白名单配置 -->
+              <div id="domainSecurityConfig" class="form-group domain-config" style="display: none;">
+                <label for="allowedDomains" class="form-label">
+                  允许的域名列表
+                  <span class="required">*</span>
+                </label>
+                <div class="domain-list-container">
+                  <div id="domainList" class="domain-list">
+                    <!-- 域名条目将在这里动态添加 -->
+                  </div>
+                  <div class="add-domain-group">
+                    <input type="text" id="newDomain" class="form-control" 
+                           placeholder="例如: example.com 或 *.example.com（支持通配符）" autocomplete="off">
+                    <button type="button" id="addDomainBtn" class="btn btn-outline">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                      添加域名
+                    </button>
+                  </div>
+                </div>
+                <small class="form-hint">
+                  <strong>支持格式：</strong><br>
+                  • 精确域名：example.com<br>
+                  • 通配符子域名：*.example.com（匹配所有子域名）<br>
+                  • 本地开发：localhost、127.0.0.1<br>
+                  <strong>注意：</strong>启用后只有列表中的域名能访问网站<br>
+                  <strong>图片域名：</strong>如果启用了独立图片域名，图片域名会自动允许访问图片资源，无需添加到此列表
+                </small>
+              </div>
+
+              <!-- 重定向选项 -->
+              <div id="redirectConfig" class="form-group domain-config" style="display: none;">
+                <div class="toggle-group">
+                  <label for="enableRedirectToMain" class="toggle-label">
+                    <span class="toggle-title">自动重定向到主域名</span>
+                    <span class="toggle-desc">当访问非允许域名时，自动重定向到主域名而不是显示错误</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="enableRedirectToMain" name="enableRedirectToMain">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 主域名配置 -->
+              <div id="mainDomainConfig" class="form-group domain-config" style="display: none;">
+                <label for="mainDomain" class="form-label">
+                  主域名
+                  <span class="required">*</span>
+                </label>
+                <input type="text" id="mainDomain" name="mainDomain" class="form-control" 
+                       placeholder="例如: www.example.com" autocomplete="off">
+                <small class="form-hint">
+                  重定向的目标域名，必须在允许列表中
+                </small>
+              </div>
+
+              <div class="action-buttons">
+                <button type="button" id="testDomainSecurity" class="btn btn-secondary">测试当前域名</button>
+                <button type="submit" class="btn btn-primary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  保存设置
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- 域名安全状态 -->
+          <div class="section-header">
+            <h3>当前状态</h3>
+            <p class="section-description">查看域名安全验证的当前状态</p>
+          </div>
+
+          <div class="config-content">
+            <div class="status-cards">
+              <div class="status-card">
+                <div class="status-icon">🌐</div>
+                <div class="status-info">
+                  <h4>当前访问域名</h4>
+                  <p id="currentDomain">-</p>
+                </div>
+              </div>
+              <div class="status-card">
+                <div class="status-icon">🔒</div>
+                <div class="status-info">
+                  <h4>安全验证状态</h4>
+                  <p id="securityStatus">未启用</p>
+                </div>
+              </div>
+              <div class="status-card">
+                <div class="status-icon">📊</div>
+                <div class="status-info">
+                  <h4>允许域名数量</h4>
+                  <p id="allowedDomainsCount">0</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- 分类管理部分 -->
+        <section id="category-management-section" class="settings-section">
+          <div class="section-header">
+            <h2>分类管理</h2>
+            <p class="section-description">创建和管理图片分类</p>
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-col-main">
+              <div class="config-section">
+                <div class="config-header">
+                  <h3>添加新分类</h3>
+                </div>
+                <div class="config-content">
+                  <form id="addCategoryForm" class="d-flex gap-2">
+                    <div class="form-group flex-grow-1">
+                      <input type="text" id="newCategoryName" placeholder="新分类名称" class="form-control">
+                    </div>
+                    <button type="submit" id="addCategoryBtn" class="btn btn-primary">添加分类</button>
+                  </form>
+                  
+                  <!-- 添加二级分类表单 -->
+                  <div class="subcategory-form-separator" style="margin: 15px 0; border-top: 1px solid var(--border-color);"></div>
+                  <form id="addSubcategoryForm" class="d-flex flex-column gap-2">
+                    <h4>添加二级分类</h4>
+                    <div class="form-group">
+                      <label for="parentCategorySelect" class="form-label">父分类</label>
+                      <select id="parentCategorySelect" class="form-select">
+                        <!-- 选项将由JavaScript动态填充 -->
+                      </select>
+                      <!-- 帮助信息由JS代码动态添加 -->
+                    </div>
+                    <div class="form-group">
+                      <label for="newSubcategoryName" class="form-label">二级分类名称</label>
+                      <input type="text" id="newSubcategoryName" placeholder="二级分类名称" class="form-control">
+                    </div>
+                    <div class="form-group">
+                      <button type="submit" id="addSubcategoryBtn" class="btn btn-primary">添加二级分类</button>
+                    </div>
+                  </form>
+                  
+                  <div class="alert alert-info" style="margin-top: 15px;">
+                    <strong>分类层级限制：</strong>系统最多只支持二级分类结构，不支持创建三级或更多级的分类嵌套。
+                  </div>
+                </div>
+              </div>
+
+              <div class="config-section">
+                <div class="config-header">
+                  <h3>默认分类设置</h3>
+                </div>
+                <div class="config-content">
+                  <div class="form-group">
+                    <label for="defaultCategory" class="form-label">进入分类管理页面时默认显示</label>
+                    <select id="defaultCategory" class="form-select">
+                      <option value="">不自动显示任何分类</option>
+                      <!-- 其他选项由JavaScript动态添加 -->
+                    </select>
+                    <div class="form-help">选择进入分类管理页面时默认展示的分类，或者不展示任何分类</div>
+                  </div>
+                  <div class="action-buttons">
+                    <button type="button" id="saveDefaultCategoryBtn" class="btn btn-primary">保存设置</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="config-section">
+                <div class="config-header">
+                  <h3>已有分类</h3>
+                </div>
+                <div class="config-content">
+                  <div id="categoryList" class="category-list">
+                    <!-- 分类列表由 JavaScript 渲染 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-col-sidebar">
+              <div class="config-section">
+                <div class="config-header">
+                  <h3>使用说明</h3>
+                </div>
+                <div class="config-content">
+                  <p>您可以在这里创建、重命名和删除图片分类。</p>
+                  <ul>
+                    <li>点击<strong>添加分类</strong>按钮创建新的分类</li>
+                    <li>使用<strong>编辑</strong>按钮修改分类名称</li>
+                    <li>使用<strong>删除</strong>按钮删除不需要的分类</li>
+                    <li>设置<strong>默认分类</strong>控制进入分类管理页面时自动展示的内容</li>
+                  </ul>
+                  <div class="alert alert-info">
+                    <strong>提示：</strong>在分类管理页面可以管理各分类下的图片。
+                  </div>
+                  <div class="mt-3">
+                    <a href="/categories" class="btn btn-outline">前往分类管理页面</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 存储配置部分 -->
+        <section id="storage-config-section" class="settings-section">
+          <div class="section-header">
+            <h2>存储配置</h2>
+            <p class="section-description">配置图片存储方式，选择本地存储或云端存储</p>
+          </div>
+
+          <div class="alert alert-info">
+            <strong>说明：</strong>您可以选择将图片存储在本地服务器或Cloudflare R2对象存储。R2提供更好的可扩展性和CDN加速。
+          </div>
+
+          <div class="settings-row">
+            <div class="settings-col-main">
+              <div class="config-section">
+                <div class="config-header">
+                  <h3>存储方式选择</h3>
+                </div>
+                <div class="config-content">
+                  <form id="storageConfigForm">
+                    <div class="storage-option" id="local-option">
+                      <input type="radio" name="storageType" value="local" id="storage-local">
+                      <label for="storage-local" class="storage-label">本地存储</label>
+                      <p class="storage-desc">图片存储在服务器本地文件系统中</p>
+                    </div>
+
+                    <div class="storage-option" id="r2-option">
+                      <input type="radio" name="storageType" value="r2" id="storage-r2">
+                      <label for="storage-r2" class="storage-label">Cloudflare R2对象存储</label>
+                      <p class="storage-desc">图片存储在Cloudflare R2，提供全球CDN加速</p>
+
+                      <div class="r2-config" id="r2-config">
+                        <div class="form-group">
+                          <div class="checkbox-group">
+                            <input class="form-check-input" type="checkbox" id="r2EnabledSwitch">
+                            <label class="form-check-label" for="r2EnabledSwitch">启用R2存储</label>
+                          </div>
+                        </div>
+
+                        <div class="form-group">
+                          <label class="form-label" for="r2AccessKeyId">Access Key ID</label>
+                          <input type="text" class="form-control" id="r2AccessKeyId" placeholder="R2 Access Key ID">
+                          <div class="form-help">在Cloudflare控制台的R2管理页面获取</div>
+                        </div>
+
+                        <div class="form-group">
+                          <label class="form-label" for="r2SecretAccessKey">Secret Access Key</label>
+                          <input type="password" class="form-control" id="r2SecretAccessKey" placeholder="R2 Secret Access Key">
+                          <div class="form-help">对应的密钥，请妥善保管</div>
+                        </div>
+
+                        <div class="form-group">
+                          <label class="form-label" for="r2Endpoint">Endpoint</label>
+                          <input type="text" class="form-control" id="r2Endpoint" placeholder="https://your-account-id.r2.cloudflarestorage.com">
+                          <div class="form-help">R2存储的API端点，格式：https://your-account-id.r2.cloudflarestorage.com</div>
+                        </div>
+
+                        <div class="form-group">
+                          <label class="form-label" for="r2Bucket">Bucket名称</label>
+                          <input type="text" class="form-control" id="r2Bucket" placeholder="my-image-bucket">
+                          <div class="form-help">存储图片的Bucket名称</div>
+                        </div>
+
+                        <div class="form-group">
+                          <label class="form-label" for="r2Region">区域</label>
+                          <input type="text" class="form-control" id="r2Region" placeholder="auto" value="auto">
+                          <div class="form-help">通常保持"auto"即可</div>
+                        </div>
+
+                        <div class="form-group">
+                          <label class="form-label" for="r2CustomDomain">自定义域名 (可选)</label>
+                          <input type="text" class="form-control" id="r2CustomDomain" placeholder="cdn.yourdomain.com">
+                          <div class="form-help">如果您配置了自定义域名，请填写此项以获得更好的访问速度</div>
+                        </div>
+
+                        <div class="form-group">
+                          <button type="button" class="btn btn-secondary" id="testR2Connection">测试R2连接</button>
+                          <div id="testResult" class="test-result"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="action-buttons">
+                      <button type="submit" class="btn btn-primary">保存配置</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            
+            <div class="settings-col-sidebar">
+              <div class="config-section">
+                <div class="config-header">
+                  <h3>配置说明</h3>
+                </div>
+                <div class="config-content">
+                  <h4>本地存储</h4>
+                  <ul>
+                    <li>图片存储在服务器本地</li>
+                    <li>无需额外配置</li>
+                    <li>适合小规模使用</li>
+                  </ul>
+
+                  <h4>R2对象存储</h4>
+                  <ul>
+                    <li>全球CDN加速</li>
+                    <li>无限扩展性</li>
+                    <li>高可用性</li>
+                    <li>成本优化</li>
+                  </ul>
+
+                  <div class="alert alert-warning">
+                    <strong>注意：</strong>更改存储方式不会影响已上传的文件，但新上传的文件将使用新的存储方式。
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // 导航相关变量
+    let currentSection = 'image-quality';
+
+    // 质量描述映射
+    function getQualityDescription(value) {
+      if (value >= 90) return '最高质量';
+      if (value >= 80) return '高质量';
+      if (value >= 70) return '中等质量';
+      if (value >= 60) return '低质量';
+      return '压缩优先';
+    }
+
+    // 更新质量显示
+    function updateQualityDisplay(slider) {
+      const value = slider.value;
+      const valueSpan = document.getElementById(slider.id + 'Value');
+      const descSpan = document.getElementById(slider.id + 'Desc');
+      
+      valueSpan.textContent = value;
+      descSpan.textContent = getQualityDescription(parseInt(value));
+    }
+
+    // 质量预设配置
+    const presets = {
+      high: { webp: 92, avif: 85 },
+      balanced: { webp: 80, avif: 75 },
+      compressed: { webp: 65, avif: 60 }
+    };
+
+    // 应用预设
+    function applyPreset(presetName) {
+      const preset = presets[presetName];
+      if (!preset) return;
+
+      document.getElementById('webpQuality').value = preset.webp;
+      document.getElementById('avifQuality').value = preset.avif;
+
+      // 更新显示
+      updateQualityDisplay(document.getElementById('webpQuality'));
+      updateQualityDisplay(document.getElementById('avifQuality'));
+    }
+
+    // 恢复默认设置
+    function resetToDefaults() {
+      applyPreset('balanced');
+      document.getElementById('pngOptimize').checked = true;
+    }
+
+    // 侧边栏导航切换
+    function switchSection(sectionName) {
+      // 更新导航状态
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+
+      // 更新内容区域
+      document.querySelectorAll('.settings-section').forEach(section => {
+        section.classList.remove('active');
+      });
+      document.getElementById(`${sectionName}-section`).classList.add('active');
+
+      currentSection = sectionName;
+
+      // 根据当前选择的部分加载相应数据
+      if (sectionName === 'storage-config') {
+        loadStorageConfig();
+      }
+    }
+
+    // 复制功能
+    function copyToClipboard(text, successMessage) {
+      if (!text) {
+        showMessage('没有可复制的内容', 'error');
+        return;
+      }
+      
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+          .then(() => showMessage(successMessage))
+          .catch((err) => {
+            console.error('复制失败:', err);
+            fallbackCopy(text, successMessage);
+          });
+      } else {
+        fallbackCopy(text, successMessage);
+      }
+    }
+    
+    function fallbackCopy(text, successMessage) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showMessage(successMessage);
+        } else {
+          showMessage('复制失败，请手动复制', 'error');
+        }
+        
+        document.body.removeChild(textArea);
+      } catch (err) {
+        console.error('备用复制方法失败:', err);
+        showMessage('复制失败，请手动复制', 'error');
+      }
+    }
+
+
+    // 存储配置相关函数
+    function loadStorageConfig() {
+      fetch('/api/storage-config')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const config = data.config;
+            
+            // 设置存储类型
+            document.querySelector(`input[value="${config.type}"]`).checked = true;
+            toggleStorageOption(config.type);
+            
+            // 设置R2配置
+            if (config.r2) {
+              document.getElementById('r2EnabledSwitch').checked = config.r2.enabled;
+              document.getElementById('r2Endpoint').value = config.r2.endpoint || '';
+              document.getElementById('r2Bucket').value = config.r2.bucket || '';
+              document.getElementById('r2Region').value = config.r2.region || 'auto';
+              document.getElementById('r2CustomDomain').value = config.r2.customDomain || '';
+              
+              // 不显示敏感信息，只显示是否已配置
+              if (config.r2.hasCredentials) {
+                document.getElementById('r2AccessKeyId').placeholder = '已配置 (留空保持不变)';
+                document.getElementById('r2SecretAccessKey').placeholder = '已配置 (留空保持不变)';
+              }
+            }
+          }
+        })
+        .catch(error => {
+          console.error('加载配置失败:', error);
+        });
+    }
+
+    function toggleStorageOption(storageType) {
+      // 更新视觉状态
+      document.querySelectorAll('.storage-option').forEach(option => option.classList.remove('active'));
+      document.getElementById(`${storageType}-option`).classList.add('active');
+
+      // 显示/隐藏R2配置
+      const r2Config = document.getElementById('r2-config');
+      if (storageType === 'r2') {
+        r2Config.style.display = 'block';
+      } else {
+        r2Config.style.display = 'none';
+      }
+    }
+
+    function saveStorageConfig() {
+      const formData = new FormData(document.getElementById('storageConfigForm'));
+      const storageType = formData.get('storageType');
+      
+      const configData = {
+        type: storageType,
+        r2: {
+          enabled: document.getElementById('r2EnabledSwitch').checked,
+          endpoint: document.getElementById('r2Endpoint').value,
+          bucket: document.getElementById('r2Bucket').value,
+          region: document.getElementById('r2Region').value,
+          customDomain: document.getElementById('r2CustomDomain').value
+        }
+      };
+      
+      // 只有在有值时才包含敏感信息
+      const accessKeyId = document.getElementById('r2AccessKeyId').value;
+      const secretAccessKey = document.getElementById('r2SecretAccessKey').value;
+      if (accessKeyId) configData.r2.accessKeyId = accessKeyId;
+      if (secretAccessKey) configData.r2.secretAccessKey = secretAccessKey;
+      
+      fetch('/api/storage-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(configData)
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+          showMessage('配置保存成功！');
+          // 重新加载配置以更新占位符
+          loadStorageConfig();
+        } else {
+          showMessage('保存失败：' + result.message, 'error');
+        }
+      })
+      .catch(error => {
+        console.error('保存配置失败:', error);
+        showMessage('保存失败，请检查网络连接', 'error');
+      });
+    }
+
+    function testR2Connection() {
+      const testButton = document.getElementById('testR2Connection');
+      const testResult = document.getElementById('testResult');
+      
+      testResult.style.display = 'none';
+      testButton.disabled = true;
+      testButton.textContent = '测试中...';
+      
+      fetch('/api/test-r2', {
+        method: 'POST'
+      })
+      .then(response => response.json())
+      .then(result => {
+        testResult.style.display = 'block';
+        if (result.success) {
+          testResult.className = 'test-result success';
+          testResult.textContent = result.message;
+        } else {
+          testResult.className = 'test-result error';
+          testResult.textContent = result.message;
+        }
+      })
+      .catch(error => {
+        testResult.style.display = 'block';
+        testResult.className = 'test-result error';
+        testResult.textContent = '测试失败：' + error.message;
+      })
+      .finally(() => {
+        testButton.disabled = false;
+        testButton.textContent = '测试R2连接';
+      });
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      // 检查认证状态
+      checkAuthStatus();
+
+      // 加载当前设置
+      loadCurrentSettings();
+
+      // 添加侧边栏导航事件监听器
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+          const sectionName = this.dataset.section;
+          
+          // 如果有data-section属性，则在当前页面切换section
+          if (sectionName) {
+            e.preventDefault();
+            switchSection(sectionName);
+          }
+          // 如果没有data-section属性，则允许正常跳转
+          // 不调用preventDefault，让链接正常工作
+        });
+      });
+
+      // 添加质量滑块事件监听器
+      const qualitySliders = document.querySelectorAll('.quality-slider');
+      qualitySliders.forEach(slider => {
+        slider.addEventListener('input', () => updateQualityDisplay(slider));
+      });
+
+      // 添加预设按钮事件监听器
+      const presetButtons = document.querySelectorAll('.preset-btn');
+      presetButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const presetCard = this.closest('.preset-card');
+          const preset = presetCard.dataset.preset;
+          applyPreset(preset);
+        });
+      });
+
+      // 恢复默认按钮
+      document.getElementById('resetDefaults').addEventListener('click', resetToDefaults);
+
+      // 保存质量设置
+      document.getElementById('qualitySettingsForm').addEventListener('submit', saveQualitySettings);
+
+      // 存储配置事件监听器
+      document.querySelectorAll('input[name="storageType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+          toggleStorageOption(this.value);
+        });
+      });
+
+      document.getElementById('storageConfigForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveStorageConfig();
+      });
+
+      document.getElementById('testR2Connection').addEventListener('click', testR2Connection);
+
+      // 页面加载时检查暗色模式
+      checkDarkMode();
+    });
+
+    // 检查认证状态
+    async function checkAuthStatus() {
+      try {
+        const response = await fetch('/api/auth-status');
+        const data = await response.json();
+        
+        if (!data.isConfigured) {
+          window.location.href = '/setup';
+          return;
+        }
+        
+        if (!data.isAuthenticated) {
+          window.location.href = '/login';
+          return;
+        }
+      } catch (error) {
+        console.error('检查认证状态失败:', error);
+        window.location.href = '/login';
+      }
+    }
+
+    // 加载当前设置
+    async function loadCurrentSettings() {
+      try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+          const settings = await response.json();
+          
+          // 应用质量设置
+          if (settings.imageQuality) {
+            if (settings.imageQuality.webp !== undefined) {
+              document.getElementById('webpQuality').value = settings.imageQuality.webp;
+            }
+            if (settings.imageQuality.avif !== undefined) {
+              document.getElementById('avifQuality').value = settings.imageQuality.avif;
+            }
+            if (settings.imageQuality.pngOptimize !== undefined) {
+              document.getElementById('pngOptimize').checked = settings.imageQuality.pngOptimize;
+            }
+          }
+
+          // 更新显示
+          const qualitySliders = document.querySelectorAll('.quality-slider');
+          qualitySliders.forEach(slider => updateQualityDisplay(slider));
+        }
+      } catch (error) {
+        console.error('加载设置失败:', error);
+      }
+    }
+
+    // 保存质量设置
+    async function saveQualitySettings(e) {
+      e.preventDefault();
+      
+      const settings = {
+        imageQuality: {
+          webp: parseInt(document.getElementById('webpQuality').value),
+          avif: parseInt(document.getElementById('avifQuality').value),
+          pngOptimize: document.getElementById('pngOptimize').checked
+        }
+      };
+
+      try {
+        const response = await fetch('/api/settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(settings)
+        });
+
+        if (response.ok) {
+          showMessage('质量设置保存成功！', 'success');
+        } else {
+          const error = await response.json();
+          showMessage('保存失败: ' + (error.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        console.error('保存设置失败:', error);
+        showMessage('保存失败: ' + error.message, 'error');
+      }
+    }
+
+    // 显示消息
+    function showMessage(message, type = 'success') {
+      // 创建消息元素
+      const messageEl = document.createElement('div');
+      messageEl.className = `message ${type}`;
+      messageEl.textContent = message;
+      messageEl.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 6px;
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        ${type === 'success' ? 'background-color: #22c55e;' : 'background-color: #ef4444;'}
+      `;
+
+      document.body.appendChild(messageEl);
+
+      // 显示动画
+      setTimeout(() => {
+        messageEl.style.opacity = '1';
+        messageEl.style.transform = 'translateX(0)';
+      }, 100);
+
+      // 自动隐藏
+      setTimeout(() => {
+        messageEl.style.opacity = '0';
+        messageEl.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (document.body.contains(messageEl)) {
+            document.body.removeChild(messageEl);
+          }
+        }, 300);
+      }, 3000);
+    }
+  </script>
+
+  <style>
+    /* 基础样式 */
+    .settings-container {
+      max-width: 1400px;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .page-header h1 {
+      margin: 0 0 0.5rem 0;
+      color: var(--text-primary);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--text-secondary);
+    }
+
+    /* 设置页面布局 */
+    .settings-layout {
+      display: flex;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    /* 侧边栏样式 */
+    .settings-sidebar {
+      width: 280px;
+      flex-shrink: 0;
+    }
+
+    .settings-nav {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 1rem;
+      border: 1px solid var(--border-color);
+      position: sticky;
+      top: 2rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .nav-item:hover {
+      background: var(--primary-light);
+      color: var(--primary-color);
+    }
+
+    .nav-item.active {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .nav-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .nav-icon {
+      margin-right: 0.75rem;
+      font-size: 1.2rem;
+    }
+
+    /* 主要内容区域 */
+    .settings-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .settings-section {
+      display: none;
+    }
+
+    .settings-section.active {
+      display: block;
+    }
+
+    .section-header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .section-header h2 {
+      margin: 0 0 0.5rem 0;
+      color: var(--text-primary);
+    }
+
+    .section-header h3 {
+      margin: 2rem 0 0.5rem 0;
+      color: var(--text-primary);
+    }
+
+    .section-description {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    /* 配置区块样式 */
+    .config-section {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .config-header {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .config-header h3 {
+      margin: 0 0 0.5rem 0;
+      color: var(--text-primary);
+    }
+
+    .config-content {
+      margin-top: 1rem;
+    }
+
+    /* 双栏布局 */
+    .settings-row {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .settings-col-main {
+      flex: 2;
+      min-width: 0;
+    }
+
+    .settings-col-sidebar {
+      flex: 1;
+      min-width: 300px;
+    }
+
+    /* 表单样式 */
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--input-border-radius);
+      background-color: var(--bg-primary);
+      color: var(--text-color);
+      transition: border-color 0.2s ease;
+    }
+
+    .form-control:focus {
+      border-color: var(--primary-color);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+    }
+
+    .form-help {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin-top: 0.25rem;
+    }
+
+    /* 质量设置样式 */
+    .quality-value {
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .quality-control {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .quality-slider {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border-color);
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .quality-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .quality-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .quality-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .quality-desc {
+      font-weight: 500;
+      color: var(--primary-color);
+    }
+
+    .quality-hint {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+
+    /* 预设卡片样式 */
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+
+    .preset-card {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .preset-card h4 {
+      margin: 0 0 0.5rem 0;
+      color: var(--text-primary);
+    }
+
+    .preset-desc {
+      margin: 0 0 0.5rem 0;
+      font-weight: 500;
+      color: var(--primary-color);
+      font-size: 0.9rem;
+    }
+
+    .preset-usage {
+      margin: 0 0 1rem 0;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+
+    .preset-btn {
+      width: 100%;
+    }
+
+    /* 复选框样式 - 优化显示效果 */
+    .checkbox-group {
+      margin-top: 0.5rem;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      font-size: 0.95rem;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: background-color 0.2s ease;
+    }
+
+    .checkbox-label:hover {
+      background-color: var(--bg-secondary);
+    }
+
+    /* 优化普通复选框样式 */
+    .checkbox-label input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      margin-right: 12px;
+      cursor: pointer;
+      accent-color: var(--primary-color);
+      flex-shrink: 0;
+    }
+
+    /* 开关按钮样式 - 增大尺寸,更醒目 */
+    .form-check-input {
+      margin-right: 0.75rem;
+      height: 26px;
+      width: 50px;
+      cursor: pointer;
+      appearance: none;
+      background-color: #ccc;
+      border-radius: 26px;
+      position: relative;
+      transition: background-color 0.3s;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .form-check-input:checked {
+      background-color: var(--primary-color);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .form-check-input:before {
+      content: '';
+      position: absolute;
+      height: 22px;
+      width: 22px;
+      left: 2px;
+      top: 2px;
+      background-color: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .form-check-input:checked:before {
+      transform: translateX(24px);
+    }
+
+    .form-check-label {
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    /* Toggle开关组优化 */
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: var(--bg-primary);
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      transition: border-color 0.2s ease;
+    }
+
+    .toggle-group:hover {
+      border-color: var(--primary-color);
+    }
+
+    .toggle-label {
+      flex: 1;
+      margin-right: 16px;
+    }
+
+    .toggle-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .toggle-desc {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .toggle {
+      display: inline-block;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .toggle input[type="checkbox"] {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .toggle-slider {
+      display: block;
+      width: 54px;
+      height: 28px;
+      background-color: #ccc;
+      border-radius: 28px;
+      position: relative;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background-color: var(--primary-color);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .toggle-slider:before {
+      content: '';
+      position: absolute;
+      height: 24px;
+      width: 24px;
+      left: 2px;
+      top: 2px;
+      background-color: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .toggle input:checked + .toggle-slider:before {
+      transform: translateX(26px);
+    }
+
+
+    /* 存储配置样式 */
+    .storage-option {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background-color: var(--bg-primary);
+      transition: border-color 0.3s, background-color 0.3s;
+      cursor: pointer;
+    }
+
+    .storage-option:hover {
+      border-color: var(--primary-color);
+    }
+
+    .storage-option.active {
+      border-color: var(--primary-color);
+      background-color: var(--primary-light);
+    }
+
+    .storage-option input[type="radio"] {
+      margin-right: 0.75rem;
+    }
+
+    .storage-label {
+      font-weight: 500;
+      font-size: 1.1rem;
+    }
+
+    .storage-desc {
+      margin: 0.5rem 0 0 1.75rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .r2-config {
+      margin-top: 1rem;
+      padding: 1rem;
+      background-color: var(--bg-secondary);
+      border-radius: 8px;
+      margin-left: 1.75rem;
+      display: none;
+    }
+
+    .r2-config.show {
+      display: block;
+    }
+
+    /* 测试结果样式 */
+    .test-result {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .test-result.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .test-result.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    /* 提示框样式 */
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+    }
+
+    .alert-info {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #b6d4ea;
+    }
+
+    .alert-warning {
+      background-color: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+
+    .alert-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    /* 信息框样式 */
+    .info-box {
+      background: var(--bg-secondary);
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      border: 1px solid var(--border-color);
+    }
+
+    .info-box h4 {
+      margin: 0 0 0.75rem 0;
+      color: var(--text-primary);
+    }
+
+    .info-box ul {
+      margin: 0.5rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .info-box li {
+      margin-bottom: 0.25rem;
+    }
+
+    /* 代码样式 */
+    code {
+      background-color: var(--bg-secondary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      color: var(--primary-color);
+    }
+
+    /* 按钮样式 */
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      margin-top: 1.5rem;
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .btn-danger {
+      background-color: #dc3545;
+      border-color: #dc3545;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #c82333;
+      border-color: #bd2130;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 1024px) {
+      .settings-layout {
+        flex-direction: column;
+      }
+
+      .settings-sidebar {
+        width: 100%;
+      }
+
+      .settings-nav {
+        position: static;
+        display: flex;
+        overflow-x: auto;
+        padding: 0.5rem;
+      }
+
+      .nav-item {
+        white-space: nowrap;
+        margin-right: 0.5rem;
+        margin-bottom: 0;
+      }
+
+      .settings-row {
+        flex-direction: column;
+      }
+
+      .settings-col-sidebar {
+        min-width: 0;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .action-buttons {
+        flex-direction: column;
+      }
+      
+      .preset-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .quality-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+      }
+
+      .radio-group {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+  </style>
+  <script src="/js/auth-check.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/dark-mode.js"></script>
+  <script src="/js/settings.js"></script>
+</body>
+</html> 

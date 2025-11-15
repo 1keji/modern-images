@@ -1,0 +1,55 @@
+# 多阶段构建 - 生产环境优化（使用 package-lock.json）
+# 使用此 Dockerfile 前，请先运行 ./generate-lockfile.sh 生成 package-lock.json
+
+FROM node:18-alpine AS base
+
+# 安装必要的系统依赖（Sharp 需要）
+RUN apk add --no-cache \
+    libc6-compat \
+    postgresql-client \
+    redis \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# 复制 package 文件（包括 package-lock.json）
+COPY package*.json ./
+
+# 生产依赖安装阶段
+FROM base AS production-deps
+# 使用 npm ci 实现可重现的构建（需要 package-lock.json）
+RUN npm ci --omit=dev --no-audit --no-fund
+
+# 开发依赖安装阶段（如果需要构建步骤）
+FROM base AS build-deps
+RUN npm ci --no-audit --no-fund
+
+# 最终生产镜像
+FROM base AS production
+
+# 设置环境变量
+ENV NODE_ENV=production \
+    PORT=3000
+
+# 从生产依赖阶段复制 node_modules
+COPY --from=production-deps /app/node_modules ./node_modules
+
+# 复制应用代码
+COPY . .
+
+# 创建必要的目录并设置权限
+RUN mkdir -p uploads sessions backups logs \
+    && chown -R node:node /app
+
+# 切换到非 root 用户
+USER node
+
+# 暴露端口
+EXPOSE 3000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# 直接启动应用（应用内部已有数据库重连机制）
+CMD ["node", "server.js"]
