@@ -37,10 +37,13 @@ cp .env.example .env
 - DB_PASSWORD (改为强密码)
 - REDIS_PASSWORD (改为强密码)
 
-启动所有服务 docker-compose up -d
-
+启动所有服务 
+```
+docker-compose up -d
+```
 反代端口就OK了，默认是3000.你也可以自行设置其他端口。
 
 github地址：
 https://github.com/1keji/modern-images
+
 
