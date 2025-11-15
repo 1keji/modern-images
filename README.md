@@ -14,10 +14,10 @@ cp .env.example .env
 ~~~
 
 修改 .env 文件中的敏感信息（必须！）
-# 至少修改以下配置:
-# - SESSION_SECRET (改为随机字符串)
-# - DB_PASSWORD (改为强密码)
-# - REDIS_PASSWORD (改为强密码)
+至少修改以下配置:
+- SESSION_SECRET (改为随机字符串)
+- DB_PASSWORD (改为强密码)
+- REDIS_PASSWORD (改为强密码)
 
 启动所有服务
 docker-compose up -d
@@ -68,6 +68,7 @@ docker-compose up -d
 ps：
 **已经添加R2对象存储支持**
 ![741b8669c263b321001.png](https://img.003666.xyz/2025/05/23/741b8669c263b321001.png)
+
 
 
 
