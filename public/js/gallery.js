@@ -4,9 +4,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let totalPages = 1;
     let imagesPerPage = parseInt(localStorage.getItem('galleryImagesPerPage')) || 50;
     let currentStorageFilter = ''; // 当前存储类型过滤器
-    
+
     // 初始化全局图片数组
     window.galleryImages = [];
+
+    // 加载状态锁，防止重复请求
+    let isLoading = false;
     
     // DOM 元素引用
     const perPageSelect = document.getElementById('perPageLimit');
@@ -257,15 +260,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
+  // 带超时的 fetch 请求
+  async function fetchWithTimeout(url, options = {}, timeout = 10000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('请求超时，请检查网络连接');
+      }
+      throw error;
+    }
+  }
+
   // 加载分页图片库 - 保持视图类型不变
   async function loadGalleryPaged() {
     const gallery = document.getElementById('gallery');
     if (!gallery) return;
-    
+
+    // 防止重复加载
+    if (isLoading) {
+      console.log('正在加载中，跳过重复请求');
+      return;
+    }
+
+    isLoading = true;
+
     // 保存当前的class列表，包括可能的gallery-mosaic类
     const currentClasses = Array.from(gallery.classList);
     const hasMosaic = currentClasses.includes('gallery-mosaic');
-    
+
     // 显示加载状态
     gallery.innerHTML = `
       <div class="loading-container">
@@ -284,48 +316,67 @@ document.addEventListener('DOMContentLoaded', () => {
         <p>正在加载图片...</p>
       </div>
     `;
-    
+
     try {
       // 构建查询参数，包含存储类型过滤
       let queryParams = `page=${currentPage}&limit=${imagesPerPage}`;
       if (currentStorageFilter) {
         queryParams += `&storage=${currentStorageFilter}`;
       }
-      
-      const res = await fetch(`/images/paged?${queryParams}`);
+
+      const res = await fetchWithTimeout(`/images/paged?${queryParams}`);
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
       const result = await res.json();
-      
-      if (result.success) {
+
+      if (result.success && result.images && result.pagination) {
         // 更新分页信息
         const { pagination } = result;
         totalPages = pagination.totalPages;
-        
+
         // 更新分页控件状态，并同步全局 currentPage（与服务器返回一致）
         updatePaginationControls(pagination);
-        
+
         // 恢复原来的视图类型
         const savedView = localStorage.getItem('galleryView') || 'grid';
         gallery.className = savedView === 'grid' ? 'gallery-grid' : 'gallery-list';
-        
+
         // 如果之前有马赛克类，重新添加
         if (hasMosaic) {
           gallery.classList.add('gallery-mosaic');
         }
-        
+
         // 渲染图片 - 统一使用全局 galleryImages 变量
         window.galleryImages = result.images; // 设置全局变量用于模态框
         renderGallery(result.images);
-        
+
         if (result.images.length === 0) {
           gallery.innerHTML = '<div class="empty-gallery">暂无图片，请先上传</div>';
         }
       } else {
-        showToast('获取图片列表失败', 'error');
+        throw new Error(result.message || '服务器返回数据格式错误');
       }
     } catch (err) {
-      console.error(err);
-      showToast('获取图片列表时发生错误', 'error');
-      gallery.innerHTML = '<div class="error-message">加载图片失败，请刷新页面重试</div>';
+      console.error('加载图片失败:', err);
+      showToast(err.message || '获取图片列表时发生错误', 'error');
+
+      // 恢复视图类型以便显示错误信息
+      const savedView = localStorage.getItem('galleryView') || 'grid';
+      gallery.className = savedView === 'grid' ? 'gallery-grid' : 'gallery-list';
+
+      gallery.innerHTML = `
+        <div class="error-message">
+          <p>加载图片失败</p>
+          <p style="font-size: 0.9em; color: #999; margin-top: 8px;">${err.message || '请刷新页面重试'}</p>
+          <button onclick="location.reload()" style="margin-top: 16px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">刷新页面</button>
+        </div>
+      `;
+    } finally {
+      // 释放加载锁
+      isLoading = false;
     }
   }
   
@@ -543,45 +594,81 @@ document.addEventListener('DOMContentLoaded', () => {
       
       gallery.appendChild(item);
     });
-    
-    // 初始化懒加载
-    initLazyLoading();
+
+    // 使用 requestAnimationFrame 确保 DOM 完全渲染后再初始化懒加载
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        initLazyLoading();
+      });
+    });
   }
-  
+
   // 实现图片懒加载
   function initLazyLoading() {
     const lazyImages = document.querySelectorAll('.gallery-img[data-src]');
-    
+
+    if (lazyImages.length === 0) {
+      return; // 没有需要懒加载的图片
+    }
+
     if ('IntersectionObserver' in window) {
       const imageObserver = new IntersectionObserver((entries, observer) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const img = entry.target;
             const src = img.getAttribute('data-src');
-            
+
+            if (!src) {
+              console.warn('图片缺少 data-src 属性');
+              imageObserver.unobserve(img);
+              return;
+            }
+
             img.onload = function() {
               const container = img.closest('.gallery-img-container');
-              const placeholder = container.querySelector('.loading-placeholder');
-              if (placeholder) {
-                placeholder.style.display = 'none';
+              if (container) {
+                const placeholder = container.querySelector('.loading-placeholder');
+                if (placeholder) {
+                  placeholder.style.display = 'none';
+                }
               }
               img.classList.add('loaded');
             };
-            
+
+            img.onerror = function() {
+              console.error('图片加载失败:', src);
+              const container = img.closest('.gallery-img-container');
+              if (container) {
+                const placeholder = container.querySelector('.loading-placeholder');
+                if (placeholder) {
+                  placeholder.style.display = 'none';
+                  placeholder.innerHTML = '<p style="color: #999; font-size: 12px;">加载失败</p>';
+                }
+              }
+              img.classList.add('error');
+            };
+
             img.setAttribute('src', src);
             img.removeAttribute('data-src');
             imageObserver.unobserve(img);
           }
         });
+      }, {
+        rootMargin: '50px', // 提前50px开始加载
+        threshold: 0.01
       });
-      
+
       lazyImages.forEach(img => {
         imageObserver.observe(img);
       });
     } else {
+      // 不支持 IntersectionObserver 的浏览器直接加载所有图片
       lazyImages.forEach(img => {
-        img.setAttribute('src', img.getAttribute('data-src'));
-        img.removeAttribute('data-src');
+        const src = img.getAttribute('data-src');
+        if (src) {
+          img.setAttribute('src', src);
+          img.removeAttribute('data-src');
+        }
       });
     }
   }
@@ -1193,13 +1280,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // 加载存储统计信息并更新下拉选项
   async function loadStorageStats() {
     try {
-      const res = await fetch('/api/storage-stats');
+      const res = await fetchWithTimeout('/api/storage-stats', {}, 5000);
+
+      if (!res.ok) {
+        console.warn('加载存储统计失败:', res.status, res.statusText);
+        return;
+      }
+
       const result = await res.json();
-      
-      if (result.success && storageFilter) {
+
+      if (result.success && result.stats && storageFilter) {
         const stats = result.stats;
         const options = storageFilter.querySelectorAll('option');
-        
+
         // 更新选项显示数量
         options.forEach(option => {
           const value = option.value;
@@ -1214,6 +1307,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (error) {
       console.error('加载存储统计失败:', error);
+      // 统计信息加载失败不影响主要功能，只记录错误
     }
   }
 
