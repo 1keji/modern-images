@@ -1,4 +1,43 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // 提示消息系统
+    const toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.body.appendChild(toastContainer);
+
+    function showToast(message, type = 'success', duration = 3000) {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+
+        const icon = type === 'success'
+            ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
+            : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+
+        toast.innerHTML = `
+            <div class="toast-icon">${icon}</div>
+            <div class="toast-content">
+                <div class="toast-title">${type === 'success' ? '成功' : type === 'info' ? '提示' : '错误'}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close">&times;</button>
+        `;
+
+        toastContainer.appendChild(toast);
+
+        // 触发重排以启用CSS过渡
+        toast.offsetHeight;
+        toast.classList.add('show');
+
+        const removeToast = () => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        };
+
+        const closeBtn = toast.querySelector('.toast-close');
+        closeBtn.addEventListener('click', removeToast);
+
+        setTimeout(removeToast, duration);
+    }
+
     // 分页相关变量
     let currentPage = 1;
     let totalPages = 1;
@@ -10,7 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 加载状态锁，防止重复请求
     let isLoading = false;
-    
+
+    // 懒加载管理变量，防止竞态条件
+    let lazyLoadRetryTimer = null;
+    let lazyLoadObserver = null;
+
     // DOM 元素引用
     const perPageSelect = document.getElementById('perPageLimit');
     const storageFilter = document.getElementById('storageFilter');
@@ -293,6 +336,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     isLoading = true;
+
+    // 清理旧的懒加载状态
+    cleanupLazyLoading();
 
     // 保存当前的class列表，包括可能的gallery-mosaic类
     const currentClasses = Array.from(gallery.classList);
@@ -595,24 +641,73 @@ document.addEventListener('DOMContentLoaded', () => {
       gallery.appendChild(item);
     });
 
-    // 使用 requestAnimationFrame 确保 DOM 完全渲染后再初始化懒加载
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        initLazyLoading();
-      });
-    });
+    // 清理旧的懒加载状态，防止竞态条件
+    cleanupLazyLoading();
+
+    // 使用改进的方式确保 DOM 完全渲染后再初始化懒加载
+    // 添加重试机制以处理 DOM 渲染延迟的情况
+    initLazyLoadingWithRetry();
   }
 
-  // 实现图片懒加载
-  function initLazyLoading() {
+  // 清理懒加载相关资源
+  function cleanupLazyLoading() {
+    // 清除重试计时器
+    if (lazyLoadRetryTimer) {
+      clearTimeout(lazyLoadRetryTimer);
+      lazyLoadRetryTimer = null;
+    }
+
+    // 断开并清除旧的观察器
+    if (lazyLoadObserver) {
+      lazyLoadObserver.disconnect();
+      lazyLoadObserver = null;
+    }
+  }
+
+  // 实现图片懒加载(带重试机制)
+  function initLazyLoadingWithRetry(retryCount = 0, maxRetries = 3) {
+    // 先清除之前的计时器
+    if (lazyLoadRetryTimer) {
+      clearTimeout(lazyLoadRetryTimer);
+      lazyLoadRetryTimer = null;
+    }
+
     const lazyImages = document.querySelectorAll('.gallery-img[data-src]');
 
     if (lazyImages.length === 0) {
-      return; // 没有需要懒加载的图片
+      // 如果没有找到图片且还有重试次数,则延迟后重试
+      if (retryCount < maxRetries) {
+        console.log(`未找到需要懒加载的图片,${50}ms后重试 (${retryCount + 1}/${maxRetries})`);
+        lazyLoadRetryTimer = setTimeout(() => {
+          initLazyLoadingWithRetry(retryCount + 1, maxRetries);
+        }, 50);
+      } else {
+        console.warn('多次重试后仍未找到需要懒加载的图片');
+      }
+      return;
+    }
+
+    // 找到图片后,立即初始化懒加载
+    initLazyLoading(lazyImages);
+  }
+
+  // 实现图片懒加载
+  function initLazyLoading(lazyImages) {
+    if (!lazyImages || lazyImages.length === 0) {
+      return;
+    }
+
+    console.log(`开始初始化懒加载, 找到 ${lazyImages.length} 张图片`);
+
+    // 先断开旧的观察器
+    if (lazyLoadObserver) {
+      lazyLoadObserver.disconnect();
+      lazyLoadObserver = null;
     }
 
     if ('IntersectionObserver' in window) {
-      const imageObserver = new IntersectionObserver((entries, observer) => {
+      // 创建新的观察器并保存到全局变量
+      lazyLoadObserver = new IntersectionObserver((entries, observer) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const img = entry.target;
@@ -620,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!src) {
               console.warn('图片缺少 data-src 属性');
-              imageObserver.unobserve(img);
+              observer.unobserve(img);
               return;
             }
 
@@ -650,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             img.setAttribute('src', src);
             img.removeAttribute('data-src');
-            imageObserver.unobserve(img);
+            observer.unobserve(img);
           }
         });
       }, {
@@ -659,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       lazyImages.forEach(img => {
-        imageObserver.observe(img);
+        lazyLoadObserver.observe(img);
       });
     } else {
       // 不支持 IntersectionObserver 的浏览器直接加载所有图片
@@ -1313,16 +1408,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 页面加载时初始化图片库
   loadGalleryPaged();
-  
-  // 提示消息功能
-  function showToast(message, type = 'success', duration = 3000) {
-    if (window.showToast) {
-      window.showToast(message, type, duration);
-    } else {
-      alert(message);
-    }
-  }
-  
+
   // 全局变量用于图片模态框事件处理
   let imageModal = null;
   let keyNavigationListener = null;

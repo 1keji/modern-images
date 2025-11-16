@@ -833,6 +833,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // 标记是否是页面首次加载
   let isFirstLoad = true;
 
+  // 懒加载管理变量，防止竞态条件
+  let lazyLoadRetryTimer = null;
+  let lazyLoadObserver = null;
+
   // 点击空白区域取消选择的事件监听器 - 移到这里优先执行
   document.addEventListener('click', (e) => {
     const contextMenu = document.getElementById('contextMenu');
@@ -848,6 +852,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 增强的图片库功能
   async function loadGallery() {
+    // 清理旧的懒加载状态
+    cleanupLazyLoading();
+
     // 显示加载状态
     if (gallery) {
       gallery.innerHTML = `
@@ -1111,49 +1118,121 @@ document.addEventListener('DOMContentLoaded', () => {
       
       gallery.appendChild(item);
     });
-    
-    // 初始化懒加载
-    initLazyLoading();
+
+    // 清理旧的懒加载状态，防止竞态条件
+    cleanupLazyLoading();
+
+    // 使用改进的方式初始化懒加载,添加重试机制
+    initLazyLoadingWithRetry();
   }
-  
-  // 实现图片懒加载
-  function initLazyLoading() {
+
+  // 清理懒加载相关资源
+  function cleanupLazyLoading() {
+    // 清除重试计时器
+    if (lazyLoadRetryTimer) {
+      clearTimeout(lazyLoadRetryTimer);
+      lazyLoadRetryTimer = null;
+    }
+
+    // 断开并清除旧的观察器
+    if (lazyLoadObserver) {
+      lazyLoadObserver.disconnect();
+      lazyLoadObserver = null;
+    }
+  }
+
+  // 实现图片懒加载(带重试机制)
+  function initLazyLoadingWithRetry(retryCount = 0, maxRetries = 3) {
+    // 先清除之前的计时器
+    if (lazyLoadRetryTimer) {
+      clearTimeout(lazyLoadRetryTimer);
+      lazyLoadRetryTimer = null;
+    }
+
     const lazyImages = document.querySelectorAll('.gallery-img[data-src]');
-    
+
+    if (lazyImages.length === 0) {
+      // 如果没有找到图片且还有重试次数,则延迟后重试
+      if (retryCount < maxRetries) {
+        lazyLoadRetryTimer = setTimeout(() => {
+          initLazyLoadingWithRetry(retryCount + 1, maxRetries);
+        }, 50);
+      }
+      return;
+    }
+
+    // 找到图片后,立即初始化懒加载
+    initLazyLoading(lazyImages);
+  }
+
+  // 实现图片懒加载
+  function initLazyLoading(lazyImages) {
+    if (!lazyImages || lazyImages.length === 0) {
+      return;
+    }
+
+    // 先断开旧的观察器
+    if (lazyLoadObserver) {
+      lazyLoadObserver.disconnect();
+      lazyLoadObserver = null;
+    }
+
     if ('IntersectionObserver' in window) {
-      const imageObserver = new IntersectionObserver((entries, observer) => {
+      // 创建新的观察器并保存到全局变量
+      lazyLoadObserver = new IntersectionObserver((entries, observer) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const img = entry.target;
             const src = img.getAttribute('data-src');
-            
+
+            if (!src) {
+              observer.unobserve(img);
+              return;
+            }
+
             img.onload = function() {
               // 图片加载完成后移除占位符
               const container = img.closest('.gallery-img-container');
-              const placeholder = container.querySelector('.loading-placeholder');
+              const placeholder = container ? container.querySelector('.loading-placeholder') : null;
               if (placeholder) {
                 placeholder.style.display = 'none';
               }
-              
+
               // 移除占位符类
               img.classList.add('loaded');
             };
-            
+
+            img.onerror = function() {
+              console.error('图片加载失败:', src);
+              const container = img.closest('.gallery-img-container');
+              const placeholder = container ? container.querySelector('.loading-placeholder') : null;
+              if (placeholder) {
+                placeholder.style.display = 'none';
+              }
+              img.classList.add('error');
+            };
+
             img.setAttribute('src', src);
             img.removeAttribute('data-src');
-            imageObserver.unobserve(img);
+            observer.unobserve(img);
           }
         });
+      }, {
+        rootMargin: '50px',
+        threshold: 0.01
       });
-      
+
       lazyImages.forEach(img => {
-        imageObserver.observe(img);
+        lazyLoadObserver.observe(img);
       });
     } else {
       // 降级处理：如果不支持 IntersectionObserver，直接加载所有图片
       lazyImages.forEach(img => {
-        img.setAttribute('src', img.getAttribute('data-src'));
-        img.removeAttribute('data-src');
+        const src = img.getAttribute('data-src');
+        if (src) {
+          img.setAttribute('src', src);
+          img.removeAttribute('data-src');
+        }
       });
     }
   }
