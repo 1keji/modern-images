@@ -25,30 +25,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis 缓存
-  redis:
-    image: redis:7-alpine
-    container_name: image-hosting-redis
-    restart: unless-stopped
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_password}
-    command:
-      - sh
-      - -c
-      - "redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""
-    volumes:
-      - redis_data:/data
-    ports:
-      # 仅在开发环境暴露端口，生产环境可以注释掉
-      - "${REDIS_PORT:-6379}:6379"
-    networks:
-      - image-hosting-network
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # Node.js 应用
   app:
     build:
@@ -60,8 +36,6 @@ services:
     restart: unless-stopped
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     environment:
       # 应用配置
@@ -76,21 +50,6 @@ services:
       DB_USER: ${DB_USER:-imghost}
       DB_PASSWORD: ${DB_PASSWORD:-changeme123}
       DB_SSL: ${DB_SSL:-false}
-
-      # Redis 配置（使用容器服务名）
-      REDIS_ENABLED: ${REDIS_ENABLED:-true}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_password}
-      REDIS_DB: ${REDIS_DB:-0}
-
-      # Redis TTL 配置
-      REDIS_IMAGE_LIST_TTL: ${REDIS_IMAGE_LIST_TTL:-300}
-      REDIS_CONFIG_TTL: ${REDIS_CONFIG_TTL:-3600}
-      REDIS_SESSION_TTL: ${REDIS_SESSION_TTL:-86400}
-      REDIS_API_TTL: ${REDIS_API_TTL:-600}
-      REDIS_STATS_TTL: ${REDIS_STATS_TTL:-1800}
-      REDIS_CATEGORY_TTL: ${REDIS_CATEGORY_TTL:-3600}
 
       # 存储配置
       STORAGE_TYPE: ${STORAGE_TYPE:-local}
@@ -107,7 +66,7 @@ services:
       # 图片处理配置
       IMAGE_QUALITY_WEBP: ${IMAGE_QUALITY_WEBP:-80}
       IMAGE_QUALITY_AVIF: ${IMAGE_QUALITY_AVIF:-75}
-      IMAGE_QUALITY_PNG_OPTIMIZE: ${IMAGE_QUALITY_PNG_OPTIMIZE:-true}
+      IMAGE_QUALITY_PNG_OPTIMIZE: ${IMAGE_QUALITY_PNG_OPTIMIZE:-false}
 
       # 备份配置
       AUTO_BACKUP_ENABLED: ${AUTO_BACKUP_ENABLED:-true}
@@ -143,6 +102,4 @@ networks:
 
 volumes:
   postgres_data:
-    driver: local
-  redis_data:
     driver: local

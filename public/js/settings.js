@@ -210,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 恢复默认设置
   function resetToDefaults() {
     applyPreset('balanced');
-    document.getElementById('pngOptimize').checked = true;
+    document.getElementById('pngOptimize').checked = false;
   }
 
   // 初始化分类管理功能

@@ -551,6 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             }
 
+            // 粘贴上传是单张图片,不需要反转
             // 将新上传的图片添加到开头
             const updatedImages = [...result.images, ...existingImages];
             sessionStorage.setItem('recentUploadedImages', JSON.stringify(updatedImages));
@@ -614,28 +615,91 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.append('images', fileQueue[i].file);
     }
     
-    // 显示加载状态
+    // 显示加载状态和进度条
     uploadBtn.disabled = true;
-    uploadBtn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin">
-        <line x1="12" y1="2" x2="12" y2="6"></line>
-        <line x1="12" y1="18" x2="12" y2="22"></line>
-        <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-        <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-        <line x1="2" y1="12" x2="6" y2="12"></line>
-        <line x1="18" y1="12" x2="22" y2="12"></line>
-        <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-        <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
-      </svg> 上传中...
+
+    // 创建进度条容器
+    const progressContainer = document.createElement('div');
+    progressContainer.id = 'uploadProgressContainer';
+    progressContainer.style.cssText = 'margin-top: 15px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);';
+    progressContainer.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin">
+          <line x1="12" y1="2" x2="12" y2="6"></line>
+          <line x1="12" y1="18" x2="12" y2="22"></line>
+          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+          <line x1="2" y1="12" x2="6" y2="12"></line>
+          <line x1="18" y1="12" x2="22" y2="12"></line>
+          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+        </svg>
+        <span id="uploadProgressText" style="color: #ffffff; font-weight: 500; font-size: 14px;">正在上传 ${fileQueue.length} 张图片... 0%</span>
+      </div>
+      <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.3); border-radius: 4px; overflow: hidden;">
+        <div id="uploadProgressBar" style="width: 0%; height: 100%; background: #ffffff; border-radius: 4px; transition: width 0.2s ease; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);"></div>
+      </div>
+      <div id="uploadProgressDetail" style="color: rgba(255, 255, 255, 0.8); font-size: 12px; margin-top: 8px; text-align: center;">准备上传...</div>
     `;
-    
+    // 插入到表单后面，更明显的位置
+    const uploadForm = document.getElementById('uploadForm');
+    if (uploadForm) {
+      uploadForm.parentElement.insertBefore(progressContainer, uploadForm.nextSibling);
+    } else {
+      uploadBtn.parentElement.insertBefore(progressContainer, uploadBtn.nextSibling);
+    }
+
+    uploadBtn.innerHTML = `正在准备上传...`;
+
     try {
-      const response = await fetch('/upload', {
-        method: 'POST',
-        body: formData
+      // 使用XMLHttpRequest以支持上传进度
+      const result = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        // 监听上传进度
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const percentComplete = Math.round((e.loaded / e.total) * 100);
+            const progressBar = document.getElementById('uploadProgressBar');
+            const progressText = document.getElementById('uploadProgressText');
+            const progressDetail = document.getElementById('uploadProgressDetail');
+
+            if (progressBar) {
+              progressBar.style.width = percentComplete + '%';
+            }
+            if (progressText) {
+              progressText.textContent = `正在上传 ${fileQueue.length} 张图片... ${percentComplete}%`;
+            }
+            if (progressDetail) {
+              const loaded = (e.loaded / 1024 / 1024).toFixed(2);
+              const total = (e.total / 1024 / 1024).toFixed(2);
+              progressDetail.textContent = `已上传 ${loaded} MB / ${total} MB`;
+            }
+          }
+        });
+
+        // 监听上传完成
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              resolve(response);
+            } catch (e) {
+              reject(new Error('解析响应失败'));
+            }
+          } else {
+            reject(new Error(`上传失败: ${xhr.status}`));
+          }
+        });
+
+        // 监听错误
+        xhr.addEventListener('error', () => reject(new Error('网络错误')));
+        xhr.addEventListener('abort', () => reject(new Error('上传已取消')));
+
+        // 发送请求
+        xhr.open('POST', '/upload');
+        xhr.send(formData);
       });
-      
-      const result = await response.json();
 
       if (result.success) {
         showToast(`成功上传 ${fileQueue.length} 张图片`);
@@ -663,8 +727,12 @@ document.addEventListener('DOMContentLoaded', () => {
               }
             }
 
+            // 反转服务器返回的图片数组,使其与用户上传的顺序一致
+            // 因为前端是从后往前添加文件到FormData,服务器返回的顺序需要反转
+            const reversedImages = [...result.images].reverse();
+
             // 将新上传的图片添加到开头
-            const updatedImages = [...result.images, ...existingImages];
+            const updatedImages = [...reversedImages, ...existingImages];
             sessionStorage.setItem('recentUploadedImages', JSON.stringify(updatedImages));
           }
         } catch (error) {
@@ -679,6 +747,12 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error(err);
       showToast('上传过程中发生错误', 'error');
     } finally {
+      // 清除进度条
+      const progressContainer = document.getElementById('uploadProgressContainer');
+      if (progressContainer) {
+        progressContainer.remove();
+      }
+
       // 重置按钮状态
       uploadBtn.disabled = false;
       uploadBtn.innerHTML = '上传图片';
@@ -1577,7 +1651,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
                 </svg>
               </div>
-              <img src="${img.url}" alt="${img.filename}" class="modal-image" style="display: none;">
+              <img src="${img.url}" alt="${img.filename}" class="modal-image" loading="lazy" decoding="async" style="display: none;">
             </div>
           </div>
           <div class="modal-navigation">

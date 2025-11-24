@@ -334,10 +334,6 @@
           <span class="stat-value" id="apiTokens">-</span>
           <span class="stat-label">API令牌</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-value" id="redisStatus">-</span>
-          <span class="stat-label">Redis状态</span>
-        </div>
       </div>
     </div>
 
@@ -363,30 +359,6 @@
           <a href="/migrate" class="btn-card btn-primary">
             <span>🔧</span>
             数据管理
-          </a>
-        </div>
-      </div>
-
-      <!-- Redis缓存管理 -->
-      <div class="admin-card">
-        <div class="card-header">
-          <div class="card-icon">⚡</div>
-          <h3 class="card-title">Redis缓存管理</h3>
-        </div>
-        <p class="card-description">
-          管理Redis缓存服务，优化系统性能，监控缓存状态。
-        </p>
-        <ul class="card-features">
-          <li>缓存状态监控</li>
-          <li>缓存清理操作</li>
-          <li>TTL时间配置</li>
-          <li>内存使用统计</li>
-          <li>连接状态检查</li>
-        </ul>
-        <div class="card-actions">
-          <a href="/redis-management" class="btn-card btn-primary">
-            <span>⚡</span>
-            Redis管理
           </a>
         </div>
       </div>
@@ -451,7 +423,6 @@
         <ul class="card-features">
           <li>系统状态检查</li>
           <li>R2连接测试</li>
-          <li>Redis连接测试</li>
           <li>错误日志查看</li>
           <li>性能监控</li>
         </ul>
@@ -533,19 +504,9 @@
         // 获取API令牌数量
         const tokensResponse = await fetch('/api/tokens');
         const tokensData = await tokensResponse.json();
-        
-        // 获取Redis状态
-        const redisResponse = await fetch('/api/debug/redis-status');
-        const redisData = await redisResponse.json();
-        
+
         document.getElementById('apiTokens').textContent = tokensData.tokens?.length || 0;
-        const redisConnected = redisData.redis ? redisData.redis.connected : redisData.connected;
-        document.getElementById('redisStatus').textContent = redisConnected ? '已连接' : '未连接';
-        
-        // 根据Redis状态设置颜色
-        const redisStatusEl = document.getElementById('redisStatus');
-        redisStatusEl.style.color = redisConnected ? 'var(--success-color)' : 'var(--error-color)';
-        
+
       } catch (error) {
         console.error('加载系统统计失败:', error);
       }

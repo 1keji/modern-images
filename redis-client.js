@@ -25,14 +25,14 @@ class RedisClient {
       maxMemoryPolicy: process.env.REDIS_MAX_MEMORY_POLICY || 'allkeys-lru',
       retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
-      // TTL配置
+      // TTL配置 (优化后的缓存策略)
       defaultTtl: {
-        imageList: parseInt(process.env.REDIS_IMAGE_LIST_TTL) || 3600, // 图片列表缓存1小时
-        imageInfo: parseInt(process.env.REDIS_IMAGE_INFO_TTL) || 7200, // 图片信息缓存2小时
-        config: parseInt(process.env.REDIS_CONFIG_TTL) || 1800, // 系统配置缓存30分钟
-        userSession: parseInt(process.env.REDIS_USER_SESSION_TTL) || 86400, // 用户会话1天
-        apiCache: parseInt(process.env.REDIS_API_CACHE_TTL) || 600, // API缓存10分钟
-        statistics: parseInt(process.env.REDIS_STATISTICS_TTL) || 300 // 统计数据5分钟
+        imageList: parseInt(process.env.REDIS_IMAGE_LIST_TTL) || 21600, // 图片列表缓存6小时 (原1小时，提升缓存命中率)
+        imageInfo: parseInt(process.env.REDIS_IMAGE_INFO_TTL) || 43200, // 图片信息缓存12小时 (原2小时，图片元数据很少变化)
+        config: parseInt(process.env.REDIS_CONFIG_TTL) || 3600, // 系统配置缓存1小时 (原30分钟，配置变更不频繁)
+        userSession: parseInt(process.env.REDIS_USER_SESSION_TTL) || 604800, // 用户会话7天 (原1天，提升用户体验)
+        apiCache: parseInt(process.env.REDIS_API_CACHE_TTL) || 1800, // API缓存30分钟 (原10分钟，API响应相对稳定)
+        statistics: parseInt(process.env.REDIS_STATISTICS_TTL) || 600 // 统计数据10分钟 (原5分钟，统计不需要实时)
       }
     };
   }
@@ -318,7 +318,7 @@ class RedisClient {
   }
 
   async invalidateImageListCache() {
-    const patterns = ['images:*'];
+    const patterns = ['images:*', 'images-paged:*'];
     for (const pattern of patterns) {
       try {
         const keys = await this.client.keys(pattern);
@@ -329,6 +329,18 @@ class RedisClient {
         console.error('清除图片列表缓存失败:', error);
       }
     }
+  }
+
+  // 分页图片列表缓存
+  async cachePagedImageList(page, limit, storageType, data, ttl = null) {
+    const key = this.generateCacheKey('images-paged', `${storageType || 'all'}-p${page}-l${limit}`);
+    const cacheTtl = ttl || this.config.defaultTtl.imageList;
+    return await this.set(key, data, cacheTtl);
+  }
+
+  async getCachedPagedImageList(page, limit, storageType) {
+    const key = this.generateCacheKey('images-paged', `${storageType || 'all'}-p${page}-l${limit}`);
+    return await this.get(key);
   }
 
   // 图片信息缓存

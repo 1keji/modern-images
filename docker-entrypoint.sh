@@ -61,7 +61,7 @@ if [ ! -f /app/config.json ]; then
   "imageQuality": {
     "webp": 80,
     "avif": 75,
-    "pngOptimize": true
+    "pngOptimize": false
   },
   "redis": {
     "enabled": true

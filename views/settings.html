@@ -110,7 +110,7 @@
                 <label for="pngOptimize" class="form-label">PNG 优化</label>
                 <div class="checkbox-group">
                   <label class="checkbox-label">
-                    <input type="checkbox" id="pngOptimize" name="pngOptimize" checked>
+                    <input type="checkbox" id="pngOptimize" name="pngOptimize">
                     <span class="checkmark"></span>
                     启用PNG压缩优化（减小文件大小，不影响质量）
                   </label>
@@ -763,7 +763,7 @@
     // 恢复默认设置
     function resetToDefaults() {
       applyPreset('balanced');
-      document.getElementById('pngOptimize').checked = true;
+      document.getElementById('pngOptimize').checked = false;
     }
 
     // 侧边栏导航切换

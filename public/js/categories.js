@@ -1750,7 +1750,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
                 </svg>
               </div>
-              <img src="${img.url}" alt="${img.filename}" class="modal-image" style="display: none;">
+              <img src="${img.url}" alt="${img.filename}" class="modal-image" loading="lazy" decoding="async" style="display: none;">
             </div>
           </div>
           <div class="modal-navigation">

@@ -21,8 +21,6 @@
     "express": "^4.18.2",
     "compression": "^1.7.4",
     "express-session": "^1.17.3",
-    "connect-redis": "^7.1.0",
-    "redis": "^4.6.0",
     "multer": "^1.4.5-lts.1",
     "session-file-store": "^1.5.0",
     "sharp": "^0.32.2",
