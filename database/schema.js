@@ -47,6 +47,11 @@ const SchemaMixin = {
       ADD COLUMN IF NOT EXISTS category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL
     `;
 
+    const addIsAnimatedColumn = `
+      ALTER TABLE images
+      ADD COLUMN IF NOT EXISTS is_animated BOOLEAN DEFAULT false
+    `;
+
     const createIndexes = [
       'CREATE INDEX IF NOT EXISTS idx_images_path ON images(path)',
       'CREATE INDEX IF NOT EXISTS idx_images_upload_time ON images(upload_time DESC)',
@@ -68,7 +73,8 @@ const SchemaMixin = {
       'CREATE INDEX IF NOT EXISTS idx_images_storage_created_covering ON images(storage, created_at DESC) INCLUDE (id, filename, path, url, category_id)',
       'CREATE INDEX IF NOT EXISTS idx_images_upload_time_desc_id ON images(upload_time DESC, id ASC)',
       'CREATE INDEX IF NOT EXISTS idx_images_category_upload_time ON images(category_id, upload_time DESC) INCLUDE (id, filename, path, url, markdown_code, html_code, file_size, format, storage)',
-      'CREATE INDEX IF NOT EXISTS idx_images_storage_upload_time ON images(storage, upload_time DESC) INCLUDE (id, filename, path, url, category_id)'
+      'CREATE INDEX IF NOT EXISTS idx_images_storage_upload_time ON images(storage, upload_time DESC) INCLUDE (id, filename, path, url, category_id)',
+      'CREATE INDEX IF NOT EXISTS idx_images_is_animated ON images(is_animated) WHERE is_animated = true'
     ];
 
     try {
@@ -78,6 +84,7 @@ const SchemaMixin = {
         await client.query(createCategoriesTable);
         await client.query(createSettingsTable);
         await client.query(addCategoryIdColumn);
+        await client.query(addIsAnimatedColumn);
         for (const indexSql of createIndexes) {
           await client.query(indexSql);
         }

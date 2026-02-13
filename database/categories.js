@@ -128,6 +128,7 @@ const CategoriesMixin = {
           htmlCode: row.html_code,
           markdownCode: row.markdown_code,
           categoryId: row.category_id,
+          isAnimated: row.is_animated || false,
           _id: row.id
         }));
       } finally {
@@ -183,6 +184,7 @@ const CategoriesMixin = {
           htmlCode: row.html_code,
           markdownCode: row.markdown_code,
           categoryId: row.category_id,
+          isAnimated: row.is_animated || false,
           _id: row.id
         }));
 
@@ -228,6 +230,7 @@ const CategoriesMixin = {
           htmlCode: row.html_code,
           markdownCode: row.markdown_code,
           categoryId: row.category_id,
+          isAnimated: row.is_animated || false,
           _id: row.id
         }));
 
@@ -355,6 +358,7 @@ const CategoriesMixin = {
           htmlCode: row.html_code,
           markdownCode: row.markdown_code,
           categoryId: row.category_id,
+          isAnimated: row.is_animated || false,
           _id: row.id
         }));
       } finally {
@@ -444,6 +448,7 @@ const CategoriesMixin = {
           htmlCode: row.html_code,
           markdownCode: row.markdown_code,
           categoryId: row.category_id,
+          isAnimated: row.is_animated || false,
           _id: row.id
         }));
 
@@ -544,6 +549,7 @@ const CategoriesMixin = {
           htmlCode: row.html_code,
           markdownCode: row.markdown_code,
           categoryId: row.category_id,
+          isAnimated: row.is_animated || false,
           _id: row.id
         }));
 

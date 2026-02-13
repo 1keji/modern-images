@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initImageDomainSettings();
   initDomainSecuritySettings();
   initDisplaySettings();
+  initAnimatedSettings();
 
   // 分类管理功能初始化
   if (categoryListEl && addCategoryForm) {
@@ -1349,6 +1350,72 @@ document.addEventListener('DOMContentLoaded', () => {
     } finally {
       saveBtn.disabled = false;
       saveBtn.innerHTML = originalText;
+    }
+  }
+
+  // ============ 动图设置相关功能 ============
+
+  function initAnimatedSettings() {
+    const form = document.getElementById('animatedSettingsForm');
+    if (!form) return;
+
+    loadAnimatedSettings();
+    form.addEventListener('submit', saveAnimatedSettings);
+  }
+
+  async function loadAnimatedSettings() {
+    try {
+      const response = await fetch('/api/settings');
+      const result = await response.json();
+
+      if (result.success && result.animatedAutoplay) {
+        const s = result.animatedAutoplay;
+        const gifEl = document.getElementById('gifAutoplay');
+        const webpEl = document.getElementById('webpAutoplay');
+        const avifEl = document.getElementById('avifAutoplay');
+        if (gifEl) gifEl.checked = s.gif !== false;
+        if (webpEl) webpEl.checked = s.webp !== false;
+        if (avifEl) avifEl.checked = s.avif !== false;
+      }
+    } catch (error) {
+      console.error('加载动图设置失败:', error);
+    }
+  }
+
+  async function saveAnimatedSettings(event) {
+    event.preventDefault();
+    const saveBtn = document.getElementById('saveAnimatedSettingsBtn');
+    const originalHTML = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.textContent = '保存中...';
+
+    try {
+      const requestData = {
+        animatedAutoplay: {
+          gif: document.getElementById('gifAutoplay').checked,
+          webp: document.getElementById('webpAutoplay').checked,
+          avif: document.getElementById('avifAutoplay').checked
+        }
+      };
+
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        showToast('动图设置保存成功', 'success');
+      } else {
+        showToast(result.message || '保存失败', 'error');
+      }
+    } catch (error) {
+      console.error('保存动图设置失败:', error);
+      showToast('保存设置时发生错误', 'error');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = originalHTML;
     }
   }
 

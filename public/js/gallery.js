@@ -50,6 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 加载状态锁，防止重复请求
     let isLoading = false;
 
+    // 动图自动播放设置
+    let animatedAutoplaySettings = { gif: true, webp: true, avif: true };
+
     // 懒加载管理变量，防止竞态条件
     let lazyLoadRetryTimer = null;
     let lazyLoadObserver = null;
@@ -525,20 +528,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = document.createElement('div');
       item.className = 'gallery-item';
       item.dataset.index = index;
-      
+      item.dataset.format = img.format || '';
+      item.dataset.animated = isImageAnimated(img) ? 'true' : 'false';
+
       // 确保设置图片的ID，用于删除操作
       if (img._id) {
         item.dataset.id = img._id;
       }
-      
+
+      const animatedBadge = isImageAnimated(img) ? `<div class="animated-badge">${img.format === 'gif' ? 'GIF' : '动图'}</div>` : '';
+
       if (isGridView) {
         item.classList.add('gallery-item-grid');
-        // 使用空白图片占位，然后懒加载，添加手机端复制按钮
         item.innerHTML = `
           <div class="gallery-img-container">
             <div class="loading-placeholder"></div>
-            <img class="gallery-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" 
+            <img class="gallery-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E"
                  data-src="${img.url}" alt="${img.filename}" loading="lazy" />
+            ${animatedBadge}
             <div class="filename">${img.filename}</div>
             <!-- 手机端复制按钮 -->
             <button class="mobile-copy-btn" data-index="${index}" title="复制链接">
@@ -554,8 +561,9 @@ document.addEventListener('DOMContentLoaded', () => {
         item.innerHTML = `
           <div class="gallery-img-container">
             <div class="loading-placeholder"></div>
-            <img class="gallery-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" 
+            <img class="gallery-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E"
                  data-src="${img.url}" alt="${img.filename}" loading="lazy" />
+            ${animatedBadge}
             <!-- 手机端复制按钮 -->
             <button class="mobile-copy-btn" data-index="${index}" title="复制链接">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -567,7 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="gallery-details">
             <div class="filename">${img.filename}</div>
             <div class="file-info">
-              ${formatBytes(img.fileSize)} · ${img.format} · ${img.storage === 'local' ? '本地存储' : '远程存储'}
+              ${formatBytes(img.fileSize)} · ${img.format}${isImageAnimated(img) ? ' · 动图' : ''} · ${img.storage === 'local' ? '本地存储' : '远程存储'}
             </div>
             <div class="file-time">${img.uploadTime}</div>
           </div>
@@ -727,6 +735,18 @@ document.addEventListener('DOMContentLoaded', () => {
                   placeholder.style.display = 'none';
                 }
               }
+
+              // 检查是否需要静态显示（关闭自动播放的动图）
+              const galleryItem = img.closest('.gallery-item');
+              if (galleryItem && galleryItem.dataset.animated === 'true') {
+                const imgIndex = parseInt(galleryItem.dataset.index);
+                const imgData = window.galleryImages && window.galleryImages[imgIndex];
+                if (imgData && shouldShowStatic(imgData)) {
+                  const didCapture = tryMakeStaticFrame(img, container, imgData);
+                  if (didCapture) return;
+                }
+              }
+
               img.classList.add('loaded');
             };
 
@@ -785,14 +805,28 @@ document.addEventListener('DOMContentLoaded', () => {
   
   function showContextMenu(event, imagesSelected) {
     const menu = createContextMenu();
-    
+
     menu.style.top = `${event.pageY}px`;
     menu.style.left = `${event.pageX}px`;
     menu.style.display = 'block';
-    
+
     const hasMultiple = imagesSelected.length > 1;
-    
-    // 此处保留复制和查看详情等菜单项，删除操作不再出现在右键菜单中
+
+    // 判断是否显示动图标记选项（仅对单张 webp/avif 图片且有ID时显示）
+    const singleImg = !hasMultiple && imagesSelected.length === 1 ? imagesSelected[0] : null;
+    const canMarkAnimated = singleImg && singleImg._id && (singleImg.format === 'webp' || singleImg.format === 'avif');
+    const isCurrentlyAnimated = singleImg && singleImg.isAnimated;
+    const animatedMenuHtml = canMarkAnimated ? `
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" id="toggleAnimated">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px">
+          <polygon points="23 7 16 12 23 17 23 7"></polygon>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+        </svg>
+        ${isCurrentlyAnimated ? '取消动图标记' : '标记为动图'}
+      </div>
+    ` : '';
+
     menu.innerHTML = `
       <div class="context-menu-item" id="copyUrl">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px">
@@ -828,42 +862,69 @@ document.addEventListener('DOMContentLoaded', () => {
         </svg>
         在新标签页打开
       </div>
+      ${animatedMenuHtml}
     `;
-    
+
     // 添加复制功能
     document.getElementById('copyUrl').addEventListener('click', () => {
       const text = imagesSelected.map(img => img.url).join('\n');
       copyToClipboard(text, hasMultiple ? '所有图片链接已复制' : '图片链接已复制');
       menu.style.display = 'none';
     });
-    
+
     document.getElementById('copyHTML').addEventListener('click', () => {
       const text = imagesSelected.map(img => `<img src="${img.url}" alt="${img.filename}" />`).join('\n');
       copyToClipboard(text, 'HTML代码已复制');
       menu.style.display = 'none';
     });
-    
+
     document.getElementById('copyMarkdown').addEventListener('click', () => {
       const text = imagesSelected.map(img => `![${img.filename}](${img.url})`).join('\n');
       copyToClipboard(text, 'Markdown代码已复制');
       menu.style.display = 'none';
     });
-    
+
     document.getElementById('copyForum').addEventListener('click', () => {
       const text = imagesSelected.map(img => `[img]${img.url}[/img]`).join('\n');
       copyToClipboard(text, '论坛格式代码已复制');
       menu.style.display = 'none';
     });
-    
+
     // 新增：在新标签页打开图片
     document.getElementById('openInTab').addEventListener('click', () => {
       if (imagesSelected.length > 0) {
-        // 只打开第一张选中的图片
         window.open(imagesSelected[0].url, '_blank');
       }
       menu.style.display = 'none';
     });
-    
+
+    // 动图标记
+    if (canMarkAnimated) {
+      document.getElementById('toggleAnimated').addEventListener('click', async () => {
+        menu.style.display = 'none';
+        const newValue = !isCurrentlyAnimated;
+        try {
+          const res = await fetch(`/api/images/${singleImg._id}/animated`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isAnimated: newValue })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast(newValue ? '已标记为动图' : '已取消动图标记', 'success');
+            // 更新内存中的数据
+            singleImg.isAnimated = newValue;
+            // 重新加载当前页以刷新显示
+            loadGalleryPaged();
+          } else {
+            showToast('操作失败', 'error');
+          }
+        } catch (e) {
+          showToast('操作失败: ' + e.message, 'error');
+        }
+      });
+    }
+
     // 点击其他地方关闭菜单
     const hideMenu = (e) => {
       if (!menu.contains(e.target)) {
@@ -871,7 +932,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.removeEventListener('click', hideMenu);
       }
     };
-    
+
     requestAnimationFrame(() => {
       document.addEventListener('click', hideMenu);
     });
@@ -1406,8 +1467,82 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // 加载动图自动播放设置
+  async function loadAnimatedAutoplaySettings() {
+    try {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      if (data.success && data.animatedAutoplay) {
+        animatedAutoplaySettings = {
+          gif: data.animatedAutoplay.gif !== false,
+          webp: data.animatedAutoplay.webp !== false,
+          avif: data.animatedAutoplay.avif !== false
+        };
+      }
+    } catch (e) {
+      console.warn('加载动图设置失败，使用默认值:', e);
+    }
+  }
+
+  // 判断图片是否为动图
+  function isImageAnimated(img) {
+    if (img.format === 'gif') return true;
+    if ((img.format === 'webp' || img.format === 'avif') && img.isAnimated) return true;
+    return false;
+  }
+
+  // 判断是否需要静态显示（关闭自动播放）
+  function shouldShowStatic(img) {
+    if (!isImageAnimated(img)) return false;
+    if (img.format === 'gif') return !animatedAutoplaySettings.gif;
+    if (img.format === 'webp') return !animatedAutoplaySettings.webp;
+    if (img.format === 'avif') return !animatedAutoplaySettings.avif;
+    return false;
+  }
+
+  // 尝试将图片转为静态首帧（canvas方式）
+  function tryMakeStaticFrame(imgEl, container, img) {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = imgEl.naturalWidth || 200;
+      canvas.height = imgEl.naturalHeight || 200;
+      canvas.className = 'gallery-img loaded static-frame';
+      canvas.style.objectFit = 'cover';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(imgEl, 0, 0);
+
+      imgEl.parentNode.insertBefore(canvas, imgEl);
+      imgEl.style.display = 'none';
+
+      // 添加播放图标覆盖层
+      const playOverlay = document.createElement('div');
+      playOverlay.className = 'animated-play-overlay';
+      playOverlay.innerHTML = '<div class="animated-play-btn">▶</div>';
+      container.appendChild(playOverlay);
+
+      // 点击播放覆盖层时切换为动图
+      playOverlay.addEventListener('click', (e) => {
+        e.stopPropagation();
+        canvas.style.display = 'none';
+        imgEl.style.display = '';
+        imgEl.classList.add('loaded');
+        playOverlay.remove();
+        // 更新动图标记为播放中
+        const badge = container.querySelector('.animated-badge');
+        if (badge) badge.classList.add('playing');
+      });
+
+      return true;
+    } catch (e) {
+      // 跨域或其他错误，正常显示
+      return false;
+    }
+  }
+
   // 页面加载时初始化图片库
-  loadGalleryPaged();
+  loadAnimatedAutoplaySettings().then(() => loadGalleryPaged());
 
   // 全局变量用于图片模态框事件处理
   let imageModal = null;

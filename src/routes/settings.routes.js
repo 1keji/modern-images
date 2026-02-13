@@ -3,7 +3,8 @@ const { getImageBaseUrl } = require('../utils/url-utils');
 const {
   getImageDomainConfig,
   getDomainSecurityConfig,
-  getDisplaySettingsConfig
+  getDisplaySettingsConfig,
+  getAnimatedAutoplayConfig
 } = require('../config/db-config-helper');
 const { getImageQualityConfig } = require('../utils/storage-utils');
 
@@ -20,11 +21,12 @@ function createSettingsRoutes(configLoader, imageDb, isAuthenticated) {
    */
   router.get('/api/settings', isAuthenticated, async (req, res) => {
     try {
-      const [imageQuality, imageDomain, domainSecurity, displaySettings] = await Promise.all([
-        Promise.resolve(getImageQualityConfig(config)), // 这个暂时还是同步的
+      const [imageQuality, imageDomain, domainSecurity, displaySettings, animatedAutoplay] = await Promise.all([
+        Promise.resolve(getImageQualityConfig(config)),
         getImageDomainConfig(imageDb, config),
         getDomainSecurityConfig(imageDb, config),
-        getDisplaySettingsConfig(imageDb, config)
+        getDisplaySettingsConfig(imageDb, config),
+        getAnimatedAutoplayConfig(imageDb, config)
       ]);
 
       res.json({
@@ -32,7 +34,8 @@ function createSettingsRoutes(configLoader, imageDb, isAuthenticated) {
         imageQuality,
         imageDomain,
         domainSecurity,
-        displaySettings
+        displaySettings,
+        animatedAutoplay
       });
     } catch (error) {
       console.error('获取系统设置失败:', error);
@@ -246,6 +249,28 @@ function createSettingsRoutes(configLoader, imageDb, isAuthenticated) {
         responseMessage.push('显示设置已更新');
       }
 
+      // 处理动图自动播放设置
+      if (req.body.animatedAutoplay) {
+        const { gif, webp, avif } = req.body.animatedAutoplay;
+        const newAnimatedAutoplay = {};
+
+        if (gif !== undefined) newAnimatedAutoplay.gif = !!gif;
+        if (webp !== undefined) newAnimatedAutoplay.webp = !!webp;
+        if (avif !== undefined) newAnimatedAutoplay.avif = !!avif;
+
+        try {
+          await imageDb.setSetting('animatedAutoplay', newAnimatedAutoplay, '动图自动播放设置');
+          console.log('动图自动播放设置已保存到数据库:', newAnimatedAutoplay);
+        } catch (dbError) {
+          console.warn('保存动图自动播放设置到数据库失败，回退到配置文件:', dbError.message);
+          if (!config.animatedAutoplay) config.animatedAutoplay = {};
+          Object.assign(config.animatedAutoplay, newAnimatedAutoplay);
+        }
+
+        hasUpdates = true;
+        responseMessage.push('动图自动播放设置已更新');
+      }
+
       if (hasUpdates) {
         // 保存到配置文件（作为备份）
         await configLoader.saveConfig();
@@ -253,11 +278,12 @@ function createSettingsRoutes(configLoader, imageDb, isAuthenticated) {
         console.log('系统设置已更新');
 
         // 重新获取最新的配置返回给前端
-        const [imageQuality, imageDomain, domainSecurity, displaySettings] = await Promise.all([
-          Promise.resolve(getImageQualityConfig(config)), // 这个暂时还是同步的
+        const [imageQuality, imageDomain, domainSecurity, displaySettings, animatedAutoplay] = await Promise.all([
+          Promise.resolve(getImageQualityConfig(config)),
           getImageDomainConfig(imageDb, config),
           getDomainSecurityConfig(imageDb, config),
-          getDisplaySettingsConfig(imageDb, config)
+          getDisplaySettingsConfig(imageDb, config),
+          getAnimatedAutoplayConfig(imageDb, config)
         ]);
 
         return res.json({
@@ -266,7 +292,8 @@ function createSettingsRoutes(configLoader, imageDb, isAuthenticated) {
           imageQuality,
           imageDomain,
           domainSecurity,
-          displaySettings
+          displaySettings,
+          animatedAutoplay
         });
       }
 

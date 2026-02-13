@@ -99,8 +99,39 @@ async function getDisplaySettingsConfig(imageDb, config) {
   };
 }
 
+/**
+ * 获取动图自动播放配置（优先从数据库读取）
+ */
+async function getAnimatedAutoplayConfig(imageDb, config) {
+  const defaultConfig = {
+    gif: true,
+    webp: true,
+    avif: true
+  };
+
+  try {
+    const dbConfig = await imageDb.getSetting('animatedAutoplay');
+    if (dbConfig) {
+      return {
+        gif: dbConfig.gif !== undefined ? dbConfig.gif : defaultConfig.gif,
+        webp: dbConfig.webp !== undefined ? dbConfig.webp : defaultConfig.webp,
+        avif: dbConfig.avif !== undefined ? dbConfig.avif : defaultConfig.avif
+      };
+    }
+  } catch (error) {
+    console.warn('从数据库读取动图自动播放配置失败，使用配置文件:', error.message);
+  }
+
+  return {
+    gif: config.animatedAutoplay?.gif !== undefined ? config.animatedAutoplay.gif : defaultConfig.gif,
+    webp: config.animatedAutoplay?.webp !== undefined ? config.animatedAutoplay.webp : defaultConfig.webp,
+    avif: config.animatedAutoplay?.avif !== undefined ? config.animatedAutoplay.avif : defaultConfig.avif
+  };
+}
+
 module.exports = {
   getImageDomainConfig,
   getDomainSecurityConfig,
-  getDisplaySettingsConfig
+  getDisplaySettingsConfig,
+  getAnimatedAutoplayConfig
 };

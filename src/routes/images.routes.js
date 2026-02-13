@@ -384,6 +384,29 @@ function createImagesRouter(dependencies) {
     }
   });
 
+  /* ---------------- 动图标记路由 ---------------- */
+
+  // 设置/取消图片的动图标记
+  router.put('/api/images/:id/animated', isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ success: false, error: '无效的图片ID' });
+      }
+
+      const { isAnimated } = req.body;
+      if (typeof isAnimated !== 'boolean') {
+        return res.status(400).json({ success: false, error: '无效的参数，isAnimated 必须为布尔值' });
+      }
+
+      const ok = await imageDb.setImageAnimated(id, isAnimated);
+      res.json({ success: ok });
+    } catch (err) {
+      console.error('设置动图标记失败:', err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   /* ---------------- 未分类图片路由 ---------------- */
 
   // 获取未分类图片

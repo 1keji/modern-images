@@ -1082,16 +1082,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = document.createElement('div');
       item.className = 'gallery-item';
       item.dataset.index = index;
-      
+      const imgIsAnimated = img.format === 'gif' || ((img.format === 'webp' || img.format === 'avif') && img.isAnimated);
+      item.dataset.animated = imgIsAnimated ? 'true' : 'false';
+
+      const animatedBadge = imgIsAnimated ? `<div class="animated-badge">${img.format === 'gif' ? 'GIF' : '动图'}</div>` : '';
+
       if (isGridView) {
         item.classList.add('gallery-item-grid');
-        
-        // 优化：使用空白图片占位，然后懒加载，添加手机端复制按钮
         item.innerHTML = `
           <div class="gallery-img-container">
             <div class="loading-placeholder"></div>
-            <img class="gallery-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" 
+            <img class="gallery-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E"
                  data-src="${img.url}" alt="${img.filename}" loading="lazy" />
+            ${animatedBadge}
             <div class="filename">${img.filename}</div>
             <!-- 手机端复制按钮 -->
             <button class="mobile-copy-btn" data-index="${index}" title="复制链接">
@@ -1104,13 +1107,12 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       } else {
         item.classList.add('gallery-item-list');
-        
-        // 优化：使用空白图片占位，然后懒加载，添加手机端复制按钮
         item.innerHTML = `
           <div class="gallery-img-container">
             <div class="loading-placeholder"></div>
-            <img class="gallery-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" 
+            <img class="gallery-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E"
                  data-src="${img.url}" alt="${img.filename}" loading="lazy" />
+            ${animatedBadge}
             <!-- 手机端复制按钮 -->
             <button class="mobile-copy-btn" data-index="${index}" title="复制链接">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1122,7 +1124,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="gallery-details">
             <div class="filename">${img.filename}</div>
             <div class="file-info">
-              ${formatBytes(img.fileSize)} · ${img.format} · ${img.storage === 'local' ? '本地存储' : '远程存储'}
+              ${formatBytes(img.fileSize)} · ${img.format}${imgIsAnimated ? ' · 动图' : ''} · ${img.storage === 'local' ? '本地存储' : '远程存储'}
             </div>
             <div class="file-time">${img.uploadTime}</div>
           </div>
@@ -1327,13 +1329,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showContextMenu(event, imagesSelected) {
     const menu = createContextMenu();
-    
+
     menu.style.top = `${event.pageY}px`;
     menu.style.left = `${event.pageX}px`;
     menu.style.display = 'block';
-    
+
     const hasMultiple = imagesSelected.length > 1;
-    
+
+    // 判断是否显示动图标记选项（仅对单张 webp/avif 图片且有ID时显示）
+    const singleImg = !hasMultiple && imagesSelected.length === 1 ? imagesSelected[0] : null;
+    const canMarkAnimated = singleImg && singleImg._id && (singleImg.format === 'webp' || singleImg.format === 'avif');
+    const isCurrentlyAnimated = singleImg && singleImg.isAnimated;
+    const animatedMenuHtml = canMarkAnimated ? `
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" id="toggleAnimated">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px">
+          <polygon points="23 7 16 12 23 17 23 7"></polygon>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+        </svg>
+        ${isCurrentlyAnimated ? '取消动图标记' : '标记为动图'}
+      </div>
+    ` : '';
+
     menu.innerHTML = `
       <div class="context-menu-item" id="copyUrl">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px">
@@ -1369,41 +1386,64 @@ document.addEventListener('DOMContentLoaded', () => {
         </svg>
         在新标签页打开
       </div>
+      ${animatedMenuHtml}
     `;
-    
-    // 修复复制功能
+
     document.getElementById('copyUrl').addEventListener('click', () => {
       const text = imagesSelected.map(img => img.url).join('\n');
       copyToClipboard(text, hasMultiple ? '所有图片链接已复制' : '图片链接已复制');
       menu.style.display = 'none';
     });
-    
+
     document.getElementById('copyHTML').addEventListener('click', () => {
       const text = imagesSelected.map(img => `<img src="${img.url}" alt="${img.filename}" />`).join('\n');
       copyToClipboard(text, 'HTML代码已复制');
       menu.style.display = 'none';
     });
-    
+
     document.getElementById('copyMarkdown').addEventListener('click', () => {
       const text = imagesSelected.map(img => `![${img.filename}](${img.url})`).join('\n');
       copyToClipboard(text, 'Markdown代码已复制');
       menu.style.display = 'none';
     });
-    
+
     document.getElementById('copyForum').addEventListener('click', () => {
       const text = imagesSelected.map(img => `[img]${img.url}[/img]`).join('\n');
       copyToClipboard(text, '论坛格式代码已复制');
       menu.style.display = 'none';
     });
-    
-    // 新增：在新标签页打开图片
+
     document.getElementById('openInTab').addEventListener('click', () => {
       if (imagesSelected.length > 0) {
-        // 只打开第一张选中的图片
         window.open(imagesSelected[0].url, '_blank');
       }
       menu.style.display = 'none';
     });
+
+    // 动图标记
+    if (canMarkAnimated) {
+      document.getElementById('toggleAnimated').addEventListener('click', async () => {
+        menu.style.display = 'none';
+        const newValue = !isCurrentlyAnimated;
+        try {
+          const res = await fetch(`/api/images/${singleImg._id}/animated`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isAnimated: newValue })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast(newValue ? '已标记为动图' : '已取消动图标记', 'success');
+            singleImg.isAnimated = newValue;
+            loadGallery();
+          } else {
+            showToast('操作失败', 'error');
+          }
+        } catch (e) {
+          showToast('操作失败: ' + e.message, 'error');
+        }
+      });
+    }
   }
 
   // 增强的剪贴板操作函数

@@ -41,6 +41,10 @@
             <span class="nav-icon">👁️</span>
             显示设置
           </a>
+          <a href="#animated-settings" class="nav-item" data-section="animated-settings">
+            <span class="nav-icon">🎬</span>
+            动图设置
+          </a>
           <a href="#image-domain" class="nav-item" data-section="image-domain">
             <span class="nav-icon">🌐</span>
             图片域名设置
@@ -194,6 +198,84 @@
               <!-- 保存按钮 -->
               <div class="form-actions">
                 <button type="submit" class="btn btn-primary" id="saveDisplaySettingsBtn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  保存设置
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- 动图设置 -->
+        <section id="animated-settings-section" class="settings-section">
+          <div class="section-header">
+            <h2>动图设置</h2>
+            <p class="section-description">配置各格式动图在图片库中打开时是否自动播放</p>
+          </div>
+
+          <div class="config-content">
+            <form id="animatedSettingsForm">
+              <!-- GIF自动播放 -->
+              <div class="form-group">
+                <div class="toggle-group">
+                  <label for="gifAutoplay" class="toggle-label">
+                    <span class="toggle-title">GIF 动图自动播放</span>
+                    <span class="toggle-desc">打开图片库时，GIF 格式的动图是否自动播放</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="gifAutoplay" name="gifAutoplay" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- WebP自动播放 -->
+              <div class="form-group">
+                <div class="toggle-group">
+                  <label for="webpAutoplay" class="toggle-label">
+                    <span class="toggle-title">WebP 动图自动播放</span>
+                    <span class="toggle-desc">打开图片库时，已标记为动图的 WebP 格式图片是否自动播放</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="webpAutoplay" name="webpAutoplay" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- AVIF自动播放 -->
+              <div class="form-group">
+                <div class="toggle-group">
+                  <label for="avifAutoplay" class="toggle-label">
+                    <span class="toggle-title">AVIF 动图自动播放</span>
+                    <span class="toggle-desc">打开图片库时，已标记为动图的 AVIF 格式图片是否自动播放</span>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" id="avifAutoplay" name="avifAutoplay" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 说明信息 -->
+              <div class="config-section" style="margin-top: 1.5rem;">
+                <div class="info-box">
+                  <h4>功能说明</h4>
+                  <ul>
+                    <li>✅ <strong>GIF 格式：</strong>GIF 图片本身即为动图，无需手动标记</li>
+                    <li>🏷️ <strong>WebP / AVIF 格式：</strong>大部分不是动图，上传后需在图片库或最近上传中右键选择"标记为动图"</li>
+                    <li>⏸️ <strong>关闭自动播放：</strong>动图将在图片库中显示静态首帧，点击可播放</li>
+                    <li>💡 <strong>提示：</strong>自动播放设置仅影响图片库中的缩略图显示，不影响单独查看图片</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="saveAnimatedSettingsBtn">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                     <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -1784,8 +1866,8 @@
     }
   </style>
   <script src="/js/auth-check.js"></script>
-  <script src="/js/main.js"></script>
+  <script src="/js/main.js?v=031b"></script>
   <script src="/js/dark-mode.js"></script>
-  <script src="/js/settings.js"></script>
+  <script src="/js/settings.js?v=031b"></script>
 </body>
 </html> 

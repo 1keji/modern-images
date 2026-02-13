@@ -10,8 +10,8 @@ const ImagesMixin = {
       const client = await this.pool.connect();
       try {
         const insertQuery = `
-          INSERT INTO images (filename, path, upload_time, file_size, storage, format, url, html_code, markdown_code, category_id)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          INSERT INTO images (filename, path, upload_time, file_size, storage, format, url, html_code, markdown_code, category_id, is_animated)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           RETURNING id
         `;
 
@@ -25,7 +25,8 @@ const ImagesMixin = {
           imageData.url,
           imageData.htmlCode,
           imageData.markdownCode,
-          imageData.categoryId || null
+          imageData.categoryId || null,
+          imageData.format === 'gif' ? true : (imageData.isAnimated || false)
         ];
 
         const result = await client.query(insertQuery, values);
@@ -62,7 +63,7 @@ const ImagesMixin = {
       const client = await this.pool.connect();
       try {
         let sql = `SELECT id, filename, path, upload_time, file_size, storage, format,
-                         url, html_code, markdown_code, category_id, created_at FROM images`;
+                         url, html_code, markdown_code, category_id, is_animated, created_at FROM images`;
         const params = [];
         let paramIndex = 1;
 
@@ -92,6 +93,7 @@ const ImagesMixin = {
           htmlCode: row.html_code,
           markdownCode: row.markdown_code,
           categoryId: row.category_id,
+          isAnimated: row.is_animated || false,
           _id: row.id
         }));
       } finally {
@@ -147,6 +149,7 @@ const ImagesMixin = {
           htmlCode: row.html_code,
           markdownCode: row.markdown_code,
           categoryId: row.category_id,
+          isAnimated: row.is_animated || false,
           _id: row.id
         }));
 
@@ -188,6 +191,7 @@ const ImagesMixin = {
             url: row.url,
             htmlCode: row.html_code,
             markdownCode: row.markdown_code,
+            isAnimated: row.is_animated || false,
             _id: row.id
           };
         }
@@ -255,6 +259,27 @@ const ImagesMixin = {
       }
     } catch (error) {
       console.error('获取存储空间使用情况失败:', error);
+      throw error;
+    }
+  },
+
+  // 设置图片的动图标记
+  async setImageAnimated(imageId, isAnimated) {
+    try {
+      const client = await this.pool.connect();
+      try {
+        const query = `
+          UPDATE images
+          SET is_animated = $1, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $2
+        `;
+        const result = await client.query(query, [isAnimated, imageId]);
+        return result.rowCount > 0;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('设置动图标记失败:', error);
       throw error;
     }
   },
