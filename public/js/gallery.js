@@ -1516,20 +1516,20 @@ document.addEventListener('DOMContentLoaded', () => {
       imgEl.parentNode.insertBefore(canvas, imgEl);
       imgEl.style.display = 'none';
 
-      // 鼠标悬停时播放动图，移开时恢复静态首帧
-      const galleryItem = container.closest('.gallery-item') || container;
-      const badge = container.querySelector('.animated-badge');
-
-      galleryItem.addEventListener('mouseenter', () => {
+      // 鼠标悬停时播放动图（直接切换显示，图片已在内存中无需重新加载）
+      container.addEventListener('mouseenter', () => {
         canvas.style.display = 'none';
         imgEl.style.display = '';
         imgEl.classList.add('loaded');
+        const badge = container.querySelector('.animated-badge');
         if (badge) badge.classList.add('playing');
       });
 
-      galleryItem.addEventListener('mouseleave', () => {
-        imgEl.style.display = 'none';
+      // 鼠标移开时恢复静态首帧
+      container.addEventListener('mouseleave', () => {
         canvas.style.display = '';
+        imgEl.style.display = 'none';
+        const badge = container.querySelector('.animated-badge');
         if (badge) badge.classList.remove('playing');
       });
 

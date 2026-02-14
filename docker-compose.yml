@@ -85,6 +85,9 @@ services:
       - ./logs:/app/logs
       # 持久化配置（config.json）
       - ./config.json:/app/config.json
+      # 挂载静态资源，修改后无需重建镜像
+      - ./public:/app/public
+      - ./views:/app/views
     ports:
       - "${APP_PORT:-3000}:3000"
     networks:
