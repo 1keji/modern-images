@@ -1516,22 +1516,21 @@ document.addEventListener('DOMContentLoaded', () => {
       imgEl.parentNode.insertBefore(canvas, imgEl);
       imgEl.style.display = 'none';
 
-      // 添加播放图标覆盖层
-      const playOverlay = document.createElement('div');
-      playOverlay.className = 'animated-play-overlay';
-      playOverlay.innerHTML = '<div class="animated-play-btn">▶</div>';
-      container.appendChild(playOverlay);
+      // 鼠标悬停时播放动图，移开时恢复静态首帧
+      const galleryItem = container.closest('.gallery-item') || container;
+      const badge = container.querySelector('.animated-badge');
 
-      // 点击播放覆盖层时切换为动图
-      playOverlay.addEventListener('click', (e) => {
-        e.stopPropagation();
+      galleryItem.addEventListener('mouseenter', () => {
         canvas.style.display = 'none';
         imgEl.style.display = '';
         imgEl.classList.add('loaded');
-        playOverlay.remove();
-        // 更新动图标记为播放中
-        const badge = container.querySelector('.animated-badge');
         if (badge) badge.classList.add('playing');
+      });
+
+      galleryItem.addEventListener('mouseleave', () => {
+        imgEl.style.display = 'none';
+        canvas.style.display = '';
+        if (badge) badge.classList.remove('playing');
       });
 
       return true;

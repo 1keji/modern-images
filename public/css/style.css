@@ -803,34 +803,6 @@ a:hover {
 }
 
 /* 动图播放覆盖层 */
-.animated-play-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 4;
-  cursor: pointer;
-  border-radius: inherit;
-}
-
-.animated-play-btn {
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  transition: background 0.2s;
-}
-
-.animated-play-overlay:hover .animated-play-btn {
-  background: rgba(67, 97, 238, 0.8);
-}
 
 /* 静态首帧 canvas */
 .static-frame {
