@@ -1,5 +1,9 @@
-[README.md](https://github.com/user-attachments/files/25314252/README.md)
 本次更新内容：
+
+- 优化网站性能
+- 在保证图片上传和显示顺序前提下，启用异步上传
+
+上次更新内容：
 
 https://1keji.net/t/topic/235
 
