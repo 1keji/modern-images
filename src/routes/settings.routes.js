@@ -7,6 +7,7 @@ const {
   getAnimatedAutoplayConfig
 } = require('../config/db-config-helper');
 const { getImageQualityConfig } = require('../utils/storage-utils');
+const { invalidateDomainConfigCache } = require('../middleware/domain-security');
 
 /**
  * 系统设置相关路由
@@ -116,6 +117,9 @@ function createSettingsRoutes(configLoader, imageDb, isAuthenticated) {
           Object.assign(config.imageDomain, newImageDomainConfig);
         }
 
+        // 使域名安全中间件的配置缓存立即失效
+        invalidateDomainConfigCache();
+
         hasUpdates = true;
         responseMessage.push('图片域名设置已更新');
       }
@@ -215,6 +219,9 @@ function createSettingsRoutes(configLoader, imageDb, isAuthenticated) {
           }
           Object.assign(config.domainSecurity, newDomainSecurityConfig);
         }
+
+        // 使域名安全中间件的配置缓存立即失效
+        invalidateDomainConfigCache();
 
         hasUpdates = true;
         responseMessage.push('域名安全设置已更新');

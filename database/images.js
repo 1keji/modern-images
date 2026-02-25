@@ -132,7 +132,9 @@ const ImagesMixin = {
         const countResult = await client.query(countSql, params);
         const total = parseInt(countResult.rows[0].total);
 
-        dataSql += ' ORDER BY upload_time DESC, id ASC LIMIT $' + paramIndex + ' OFFSET $' + (paramIndex + 1);
+        // 同一批次图片 upload_time 相同，用文件名中嵌入的 orderIndex（第17-19位）作次级排序
+        // 文件名格式：{16位hex}{3位orderIndex}.{ext}，orderIndex 在写入前同步计算，是唯一可靠的顺序依据
+        dataSql += ' ORDER BY upload_time DESC, CAST(SUBSTRING(filename FROM 17 FOR 3) AS INTEGER) ASC LIMIT $' + paramIndex + ' OFFSET $' + (paramIndex + 1);
         const offset = (page - 1) * limit;
         const dataParams = [...params, limit, offset];
 
@@ -201,6 +203,22 @@ const ImagesMixin = {
       }
     } catch (error) {
       console.error('查找图片失败:', error);
+      throw error;
+    }
+  },
+
+  // 仅获取所有图片的路径集合（轻量查询，用于与文件系统比对）
+  async getAllImagePaths() {
+    try {
+      const client = await this.pool.connect();
+      try {
+        const result = await client.query('SELECT path FROM images');
+        return new Set(result.rows.map(row => row.path));
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error('获取图片路径集合失败:', error);
       throw error;
     }
   },
