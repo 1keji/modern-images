@@ -115,7 +115,7 @@ const CategoriesMixin = {
     try {
       const client = await this.pool.connect();
       try {
-        const sql = 'SELECT * FROM images WHERE category_id = $1 ORDER BY upload_time DESC, CAST(SUBSTRING(filename FROM 17 FOR 3) AS INTEGER) ASC';
+        const sql = 'SELECT * FROM images WHERE category_id = $1 ORDER BY upload_time DESC';
         const result = await client.query(sql, [categoryId]);
         return result.rows.map(row => ({
           filename: row.filename,
@@ -168,7 +168,7 @@ const CategoriesMixin = {
         console.log(`分类 ${parsedCategoryId} 共有 ${total} 张图片`);
 
         const offset = (page - 1) * limit;
-        const dataSql = 'SELECT * FROM images WHERE category_id = $1 ORDER BY upload_time DESC, CAST(SUBSTRING(filename FROM 17 FOR 3) AS INTEGER) ASC LIMIT $2 OFFSET $3';
+        const dataSql = 'SELECT * FROM images WHERE category_id = $1 ORDER BY upload_time DESC LIMIT $2 OFFSET $3';
         const dataResult = await client.query(dataSql, [parsedCategoryId, limit, offset]);
 
         console.log(`成功获取 ${dataResult.rows.length} 张图片`);
@@ -216,7 +216,7 @@ const CategoriesMixin = {
         const total = parseInt(countResult.rows[0].total);
 
         const offset = (page - 1) * limit;
-        const dataSql = 'SELECT * FROM images WHERE category_id IS NULL ORDER BY upload_time DESC, CAST(SUBSTRING(filename FROM 17 FOR 3) AS INTEGER) ASC LIMIT $1 OFFSET $2';
+        const dataSql = 'SELECT * FROM images WHERE category_id IS NULL ORDER BY upload_time DESC LIMIT $1 OFFSET $2';
         const dataResult = await client.query(dataSql, [limit, offset]);
 
         const images = dataResult.rows.map(row => ({
@@ -345,7 +345,7 @@ const CategoriesMixin = {
     try {
       const client = await this.pool.connect();
       try {
-        const sql = 'SELECT * FROM images WHERE category_id IS NULL ORDER BY upload_time DESC, CAST(SUBSTRING(filename FROM 17 FOR 3) AS INTEGER) ASC';
+        const sql = 'SELECT * FROM images WHERE category_id IS NULL ORDER BY upload_time DESC';
         const result = await client.query(sql);
         return result.rows.map(row => ({
           filename: row.filename,
@@ -397,7 +397,7 @@ const CategoriesMixin = {
           sql = `
             SELECT * FROM images
             WHERE category_id = $1
-            ORDER BY upload_time DESC, CAST(SUBSTRING(filename FROM 17 FOR 3) AS INTEGER) ASC
+            ORDER BY upload_time DESC
             LIMIT $2 OFFSET $3
           `;
           params = [parsedParentId, limit, offset];
@@ -414,7 +414,7 @@ const CategoriesMixin = {
             AND id NOT IN (
               SELECT id FROM images WHERE category_id IN (${placeholders})
             )
-            ORDER BY upload_time DESC, CAST(SUBSTRING(filename FROM 17 FOR 3) AS INTEGER) ASC
+            ORDER BY upload_time DESC
             LIMIT $${subCategoryIds.length + 2} OFFSET $${subCategoryIds.length + 3}
           `;
 
@@ -508,7 +508,7 @@ const CategoriesMixin = {
           sql = `
             SELECT * FROM images
             WHERE category_id = $1
-            ORDER BY upload_time DESC, CAST(SUBSTRING(filename FROM 17 FOR 3) AS INTEGER) ASC
+            ORDER BY upload_time DESC
             LIMIT $2 OFFSET $3
           `;
           params = [parsedParentId, limit, offset];
@@ -523,7 +523,7 @@ const CategoriesMixin = {
           sql = `
             SELECT * FROM images
             WHERE category_id IN (${placeholders})
-            ORDER BY upload_time DESC, CAST(SUBSTRING(filename FROM 17 FOR 3) AS INTEGER) ASC
+            ORDER BY upload_time DESC
             LIMIT $${allCategoryIds.length + 1} OFFSET $${allCategoryIds.length + 2}
           `;
 

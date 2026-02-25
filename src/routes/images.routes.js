@@ -213,8 +213,9 @@ function createImagesRouter(dependencies) {
         console.warn('获取存储空间使用情况失败:', sizeErr.message);
       }
 
-      // 仅查询路径集合，避免加载全量图片数据
-      const recordedPaths = await imageDb.getAllImagePaths();
+      // 检查文件系统中未记录的图片
+      const images = await imageDb.getAllImages();
+      const recordedPaths = new Set(images.map(img => img.path));
 
       const uploadsDir = path.join(process.cwd(), 'uploads');
       let unrecordedCount = 0;
@@ -411,9 +412,36 @@ function createImagesRouter(dependencies) {
   // 获取未分类图片
   router.get('/api/images/uncategorized', isAuthenticated, async (req, res) => {
     try {
-      // 直接查询数据库中 category_id IS NULL 的图片，避免全量加载后内存过滤
-      const images = await imageDb.getImagesWithoutCategory();
-      res.json({ success: true, images });
+      // 合并数据库与文件系统图片（不使用缓存，确保实时）
+      let images = await mergeImagesFromDbAndFileSystem(req, null, false);
+
+      // 过滤条件：数据库中 categoryId 为空，或文件系统中尚未入库（无 categoryId 字段）
+      const uncategorized = images.filter(img => !img.categoryId);
+
+      // 按上传时间倒序，对于相同时间的图片按文件名中的orderIndex排序
+      uncategorized.sort((a, b) => {
+        const dateA = new Date(a.uploadTime);
+        const dateB = new Date(b.uploadTime);
+        if (dateB.getTime() !== dateA.getTime()) {
+          return dateB - dateA;
+        }
+        // 相同时间的情况下，按文件名中的orderIndex排序（001, 002, 003...）
+        const getOrderIndex = (filename) => {
+          if (!filename) return 0;
+          const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
+          const orderStr = nameWithoutExt.slice(-3);
+          return parseInt(orderStr, 10) || 0;
+        };
+        return getOrderIndex(a.filename) - getOrderIndex(b.filename);
+      });
+
+      // 本地化时间格式
+      const formatted = uncategorized.map(img => ({
+        ...img,
+        uploadTime: new Date(img.uploadTime).toLocaleString()
+      }));
+
+      res.json({ success: true, images: formatted });
     } catch (err) {
       console.error('获取未分类图片失败:', err);
       res.status(500).json({ success: false, error: err.message });
