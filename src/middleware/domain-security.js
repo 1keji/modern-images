@@ -1,6 +1,23 @@
 const { getProtocol } = require('../utils/url-utils');
 const { getDomainSecurityConfig, getImageDomainConfig } = require('../config/db-config-helper');
 
+// 模块级配置缓存，避免每个请求都查询数据库
+const _configCache = {
+  domainConfig: null,
+  imageDomainConfig: null,
+  lastFetched: 0,
+  ttl: 30000 // 30秒 TTL，配置变更后最多延迟30秒生效
+};
+
+/**
+ * 使缓存失效（供设置变更时调用）
+ */
+function invalidateDomainConfigCache() {
+  _configCache.domainConfig = null;
+  _configCache.imageDomainConfig = null;
+  _configCache.lastFetched = 0;
+}
+
 /**
  * 域名安全验证中间件
  * 需要imageDb作为依赖
@@ -8,7 +25,19 @@ const { getDomainSecurityConfig, getImageDomainConfig } = require('../config/db-
 function createDomainSecurityMiddleware(imageDb) {
   return async function domainSecurityCheck(req, res, next) {
     try {
-      const domainConfig = await getDomainSecurityConfig(imageDb, {});
+      // 使用缓存的配置，避免每个请求都查询数据库
+      const now = Date.now();
+      if (!_configCache.domainConfig || (now - _configCache.lastFetched) > _configCache.ttl) {
+        const [domainCfg, imageDomainCfg] = await Promise.all([
+          getDomainSecurityConfig(imageDb, {}),
+          getImageDomainConfig(imageDb, {})
+        ]);
+        _configCache.domainConfig = domainCfg;
+        _configCache.imageDomainConfig = imageDomainCfg;
+        _configCache.lastFetched = now;
+      }
+
+      const domainConfig = _configCache.domainConfig;
 
       // 如果域名安全验证未启用，直接通过
       if (!domainConfig.enabled) {
@@ -26,8 +55,8 @@ function createDomainSecurityMiddleware(imageDb) {
       // 移除端口号，只比较域名部分
       const requestDomain = requestHost.split(':')[0].toLowerCase();
 
-      // 获取图片域名配置
-      const imageDomainConfig = await getImageDomainConfig(imageDb, {});
+      // 获取图片域名配置（来自缓存）
+      const imageDomainConfig = _configCache.imageDomainConfig;
 
       // 检查是否是图片独立域名访问（包括主图片域名和备用图片域名）
       if (imageDomainConfig.enabled) {
@@ -124,5 +153,6 @@ function createDomainSecurityMiddleware(imageDb) {
 }
 
 module.exports = {
-  createDomainSecurityMiddleware
+  createDomainSecurityMiddleware,
+  invalidateDomainConfigCache
 };
