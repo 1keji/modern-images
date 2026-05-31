@@ -47,8 +47,6 @@ function createUploadRoutesOptimized({
 
       // 格式选项
       const formatOption = req.body.format || 'original';
-      const categoryId = req.body.categoryId || null;
-
       // 获取配置信息
       const yearMonthPath = getYearMonthPath();
       const baseUrl = getBaseUrl(req);
@@ -60,7 +58,6 @@ function createUploadRoutesOptimized({
       // 准备任务选项
       const taskOptions = {
         format: formatOption,
-        categoryId,
         yearMonthPath,
         baseUrl,
         imageBaseUrl,
@@ -147,14 +144,6 @@ function createUploadRoutesOptimized({
       const formatOption = req.query.format || config.api?.defaultFormat || 'original';
       const storageParam = req.query.storage || req.body.storage || 'auto';
 
-      // 获取或创建"api上传"分类
-      let apiUploadCategoryId = null;
-      try {
-        apiUploadCategoryId = await imageDb.ensureApiUploadCategory();
-      } catch (catError) {
-        console.error('获取API上传分类失败:', catError);
-      }
-
       // 获取配置信息
       const yearMonthPath = path.join('api', getYearMonthPath());
       const baseUrl = getBaseUrl(req);
@@ -174,7 +163,6 @@ function createUploadRoutesOptimized({
       // 准备任务选项
       const taskOptions = {
         format: formatOption,
-        categoryId: apiUploadCategoryId,
         yearMonthPath,
         baseUrl,
         imageBaseUrl,
@@ -245,7 +233,6 @@ function createUploadRoutesOptimized({
       // 这里保留原有的同步处理逻辑，确保向后兼容
       return await handleSyncUpload(req, res, {
         formatOption,
-        apiUploadCategoryId,
         yearMonthPath,
         baseUrl,
         imageBaseUrl,

@@ -32,9 +32,14 @@ function createViewsRoutes(isAuthenticated) {
     res.sendFile(path.join(process.cwd(), 'views', 'admin-center.html'));
   });
 
-  // 分类管理页面
-  router.get('/categories', isAuthenticated, (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'views', 'categories.html'));
+  // 相册管理页面
+  router.get('/albums', isAuthenticated, (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'views', 'albums.html'));
+  });
+
+  // 相册详情页（支持直接访问 /albums/:id）
+  router.get('/albums/:id', isAuthenticated, (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'views', 'albums.html'));
   });
 
   // 设置页面

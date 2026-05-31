@@ -216,8 +216,7 @@ class QueueManager {
         format: 'webp',
         url: imageUrl,
         html_code: htmlCode,
-        markdown_code: markdownCode,
-        category_id: options.categoryId || null
+        markdown_code: markdownCode
       };
 
       await this.imageDb.addImage(imageData);

@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的相册 - 现代图床</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234361ee'><path d='M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM8 15l2.5-3.5 2 2.5 2.5-3L18 15H8z'/></svg>">
+  <style>
+    /* ── 相册列表卡片 ── */
+    .albums-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+    .albums-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:16px; margin-bottom:30px; }
+    .album-card { background:var(--bg-secondary); border-radius:var(--border-radius); overflow:hidden; border:1px solid var(--border-color); cursor:pointer; transition:box-shadow .2s,transform .15s; position:relative; }
+    .album-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.12); transform:translateY(-2px); }
+    .album-cover-placeholder { width:100%; height:145px; background:linear-gradient(135deg,var(--bg-secondary) 0%,var(--border-color) 100%); display:flex; align-items:center; justify-content:center; font-size:2.8rem; color:var(--text-secondary); }
+    .album-cover { width:100%; height:145px; overflow:hidden; }
+    .album-cover img { width:100%; height:100%; object-fit:cover; }
+    .album-info { padding:11px 12px; }
+    .album-name { font-weight:600; font-size:.97rem; margin-bottom:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .album-meta { font-size:.8rem; color:var(--text-secondary); margin-bottom:7px; }
+    .album-desc { font-size:.8rem; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .album-card-actions { display:flex; gap:5px; margin-top:9px; }
+    .album-card-actions .btn { font-size:.76rem; padding:3px 9px; }
+    .album-badge { position:absolute; top:7px; left:7px; color:#fff; border-radius:4px; font-size:.7rem; padding:2px 7px; }
+    .album-badge-default { background:var(--primary-color); }
+    .album-badge-system { background:var(--text-secondary); }
+
+    /* ── 相册详情头 ── */
+    .album-detail-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; background:var(--bg-secondary); padding:12px 16px; border-radius:var(--border-radius); border:1px solid var(--border-color); }
+    .album-detail-meta { font-size:.83rem; color:var(--text-secondary); margin-top:2px; }
+    .album-detail-actions { margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; }
+    /* ── 面包屑导航 ── */
+    .album-breadcrumb { display:flex; align-items:center; gap:5px; flex:1; min-width:0; }
+    .breadcrumb-link { color:var(--primary-color); text-decoration:none; font-size:.97rem; font-weight:500; white-space:nowrap; }
+    .breadcrumb-link:hover { text-decoration:underline; }
+    .breadcrumb-separator { color:var(--text-secondary); font-size:1rem; user-select:none; flex-shrink:0; }
+    .breadcrumb-album-info { display:flex; flex-direction:column; min-width:0; }
+    .breadcrumb-current { font-size:1rem; font-weight:600; color:var(--text-color); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* ── 相册设置下拉 ── */
+    .album-settings-dropdown { position:relative; }
+    .album-settings-menu { position:absolute; right:0; top:calc(100% + 6px); background:var(--bg-color); border:1px solid var(--border-color); border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.14); min-width:148px; z-index:300; overflow:hidden; }
+    .album-settings-item { display:flex; align-items:center; gap:8px; width:100%; padding:9px 14px; background:none; border:none; cursor:pointer; font-size:.9rem; color:var(--text-color); text-align:left; transition:background .15s; box-sizing:border-box; }
+    .album-settings-item:hover:not(:disabled) { background:var(--bg-secondary); }
+    .album-settings-item:disabled { opacity:.45; cursor:not-allowed; }
+    .album-settings-item.danger { color:#ef4444; }
+    .album-settings-divider { height:1px; background:var(--border-color); margin:2px 0; }
+
+    /* ── 全页拖放遮罩 ── */
+    .page-drop-overlay { display:none; position:fixed; inset:0; z-index:2000; pointer-events:none; background:rgba(67,97,238,.12); border:3px dashed var(--primary-color); border-radius:16px; box-sizing:border-box; }
+    .page-drop-overlay.active { display:flex; align-items:center; justify-content:center; pointer-events:auto; }
+    .page-drop-overlay-inner { background:var(--bg-color); border-radius:12px; padding:28px 40px; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,.18); border:2px solid var(--primary-color); pointer-events:none; }
+    .page-drop-overlay-inner svg { color:var(--primary-color); margin-bottom:10px; }
+    .page-drop-overlay-inner p { margin:0; font-size:1.1rem; font-weight:600; color:var(--primary-color); }
+    .page-drop-overlay-inner small { color:var(--text-secondary); font-size:.83rem; }
+
+    /* ── 内嵌上传 ── */
+    .inline-upload-area { border:1px solid var(--border-color); border-radius:var(--border-radius); margin-bottom:16px; overflow:hidden; background:var(--bg-secondary); }
+    .inline-upload-toggle { display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:11px 16px; user-select:none; }
+    .inline-upload-toggle:hover { background:var(--bg-secondary); }
+    .inline-upload-toggle h3 { margin:0; font-size:.95rem; }
+    .inline-upload-body { padding:14px 16px; border-top:1px solid var(--border-color); }
+    .inline-drop-area { border:2px dashed var(--border-color); border-radius:8px; padding:26px 16px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; color:var(--text-secondary); font-size:.93rem; }
+    .inline-drop-area:hover,.inline-drop-area.drag-over { border-color:var(--primary-color); background:rgba(67,97,238,.05); }
+    .format-row { display:flex; gap:14px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+    .format-row label { display:flex; align-items:center; gap:4px; cursor:pointer; font-size:.88rem; }
+    .upload-progress-list { margin-top:8px; }
+    .upload-progress-item { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid var(--border-color); font-size:.86rem; }
+    .upload-progress-item:last-child { border-bottom:none; }
+    .progress-status { font-size:.78rem; color:var(--text-secondary); }
+    .progress-status.done { color:#22c55e; } .progress-status.error { color:#ef4444; }
+
+    /* ── Modal ── */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; align-items:center; justify-content:center; backdrop-filter:blur(2px); }
+    .modal-overlay.active { display:flex; }
+    .modal-box { background:var(--bg-color); border-radius:var(--border-radius-lg); padding:24px; min-width:320px; max-width:480px; width:90%; box-shadow:0 12px 40px rgba(0,0,0,.25); border:1px solid var(--border-color); }
+    .modal-box h3 { margin:0 0 6px; font-size:1.1rem; color:var(--text-color); }
+    .modal-box .modal-subtitle { font-size:.82rem; color:var(--text-secondary); margin-bottom:18px; }
+    .modal-box .form-group { margin-bottom:14px; }
+    .modal-box label { display:block; font-size:.86rem; margin-bottom:5px; color:var(--text-secondary); font-weight:500; }
+    .modal-box input,.modal-box textarea { width:100%; padding:9px 12px; border:1px solid var(--border-color); border-radius:var(--input-border-radius); background:var(--bg-secondary); color:var(--text-color); font-size:.93rem; box-sizing:border-box; transition:border-color .2s,box-shadow .2s; outline:none; }
+    .modal-box input:focus,.modal-box textarea:focus { border-color:var(--primary-color); box-shadow:0 0 0 3px rgba(67,97,238,.15); }
+    .modal-box textarea { resize:vertical; min-height:72px; }
+    .modal-divider { height:1px; background:var(--border-color); margin:4px 0 18px; }
+    .modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; padding-top:16px; border-top:1px solid var(--border-color); }
+    /* 移动相册列表 */
+    .move-album-list { max-height:280px; overflow-y:auto; margin:-4px 0 0; }
+    .move-album-item { display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:8px; cursor:pointer; transition:background .15s; margin-bottom:3px; }
+    .move-album-item:hover { background:var(--bg-secondary); }
+    .move-album-item:hover .move-album-icon { color:var(--primary-color); }
+    .move-album-icon { color:var(--text-secondary); flex-shrink:0; transition:color .15s; }
+    .move-album-name { flex:1; font-weight:500; font-size:.93rem; color:var(--text-color); }
+    .move-album-count { font-size:.78rem; background:var(--bg-secondary); color:var(--text-secondary); padding:2px 8px; border-radius:12px; white-space:nowrap; border:1px solid var(--border-color); }
+    .move-album-empty { text-align:center; padding:28px 0; color:var(--text-secondary); font-size:.9rem; }
+    .context-menu-danger { color:#ef4444 !important; }
+    .default-album-item.selected { background:rgba(67,97,238,.1) !important; outline:2px solid var(--primary-color); }
+    .context-menu-disabled { opacity:.45; cursor:not-allowed !important; pointer-events:none; }
+    .move-album-item.selected { background:rgba(67,97,238,.1); outline:2px solid var(--primary-color); border-radius:8px; }
+    /* ── 内嵌上传预览 ── */
+    .inline-preview-header { display:flex; justify-content:space-between; align-items:center; margin:10px 0 6px; }
+    .inline-preview-title { font-size:.85rem; color:var(--text-secondary); }
+    .inline-preview-list { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px; position:relative; min-height:10px; }
+    .inline-preview-item { position:relative; width:72px; height:72px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-secondary); flex-shrink:0; cursor:grab; user-select:none; }
+    .inline-preview-item.dragging { opacity:.3; }
+    .inline-preview-img-wrap { width:100%; height:100%; overflow:hidden; border-radius:6px; }
+    .inline-preview-img-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
+    .inline-preview-del { position:absolute; top:-6px; right:-6px; width:18px; height:18px; background:#ef4444; color:#fff; border:none; border-radius:50%; cursor:pointer; font-size:13px; line-height:18px; text-align:center; padding:0; z-index:10; }
+    .inline-drag-hint { font-size:.74rem; color:var(--text-secondary); text-align:center; margin:4px 0 8px; }
+    .inline-progress-wrap { margin-top:10px; background:linear-gradient(135deg,#667eea,#764ba2); border-radius:8px; padding:12px; }
+    .inline-progress-text { color:#fff; font-size:.84rem; font-weight:500; margin-bottom:6px; }
+    .inline-progress-track { width:100%; height:6px; background:rgba(255,255,255,.3); border-radius:3px; overflow:hidden; }
+    .inline-progress-fill { height:100%; background:#fff; border-radius:3px; transition:width .2s ease; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="logo">现代图床</a>
+      <nav class="nav">
+        <a href="/" class="btn btn-outline">上传</a>
+        <a href="/gallery" class="btn btn-outline">我的图片库</a>
+        <a href="/albums" class="btn btn-outline">我的相册</a>
+        <a href="/admin-center" class="btn btn-outline">管理中心</a>
+        <a href="/settings" class="btn btn-outline">系统设置</a>
+        <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
+        <a href="/logout" class="btn btn-outline">退出</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ═══════════════ 相册列表 ═══════════════ -->
+    <div id="albumList">
+      <div class="albums-header">
+        <h2>我的相册</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button id="setDefaultAlbumBtn" class="btn btn-outline" style="font-size:.85rem;">设置默认相册</button>
+          <button id="createAlbumBtn" class="btn btn-primary">+ 新建相册</button>
+        </div>
+      </div>
+      <div id="albumsGrid" class="albums-grid"></div>
+    </div>
+
+    <!-- ═══════════════ 相册详情 ═══════════════ -->
+    <div id="albumDetail" style="display:none">
+
+      <!-- 详情头 -->
+      <div class="album-detail-header">
+        <nav class="album-breadcrumb">
+          <a href="/albums" id="backToListBtn" class="breadcrumb-link">我的相册</a>
+          <span class="breadcrumb-separator">›</span>
+          <div class="breadcrumb-album-info">
+            <span id="detailAlbumName" class="breadcrumb-current"></span>
+            <div id="detailAlbumDesc" class="album-detail-meta"></div>
+          </div>
+        </nav>
+        <div class="album-detail-actions">
+          <div class="album-settings-dropdown">
+            <button id="albumSettingsBtn" class="btn btn-outline">⚙ 设置</button>
+            <div id="albumSettingsMenu" class="album-settings-menu" style="display:none">
+              <button id="setAsDefaultBtn" class="album-settings-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <span id="setAsDefaultLabel">设为默认</span>
+              </button>
+              <button id="editAlbumBtn" class="album-settings-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                编辑相册
+              </button>
+              <div class="album-settings-divider"></div>
+              <button id="deleteAlbumBtn" class="album-settings-item danger">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                删除相册
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 内嵌上传 -->
+      <div class="inline-upload-area">
+        <div class="inline-upload-toggle" id="uploadToggle">
+          <h3>📤 上传图片到此相册</h3>
+          <span id="uploadToggleIcon">▼</span>
+        </div>
+        <div class="inline-upload-body" id="uploadBody" style="display:none">
+          <div class="format-row">
+            <span style="color:var(--text-secondary);font-size:.86rem;">格式:</span>
+            <label><input type="radio" name="inlineFormat" value="original" checked> 原始</label>
+            <label><input type="radio" name="inlineFormat" value="webp"> WebP</label>
+            <label><input type="radio" name="inlineFormat" value="avif"> AVIF</label>
+          </div>
+          <div class="inline-drop-area" id="inlineDropArea">
+            <div>📁 拖放图片到此处，或 <strong>点击选择文件</strong></div>
+            <div style="font-size:.78rem;margin-top:5px;">支持 JPG、PNG、GIF、WebP、AVIF</div>
+          </div>
+          <input type="file" id="inlineFileInput" multiple accept="image/*" style="display:none">
+          <div id="inlinePreviewArea"></div>
+        </div>
+      </div>
+
+      <!-- 图片库（与 gallery.html 相同结构） -->
+      <section class="gallery-container">
+        <div class="gallery-header">
+          <h2 id="detailGalleryTitle" style="font-size:1rem;margin:0;">相册图片</h2>
+          <div class="view-options">
+            <!-- 分页（顶部） -->
+            <div class="pagination-controls">
+              <button id="agPrevPage" class="btn btn-icon" disabled title="上一页">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div id="agPageNumbers" class="pagination-numbers"></div>
+              <button id="agNextPage" class="btn btn-icon" disabled title="下一页">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+            <!-- 每页数量 -->
+            <select id="agPerPageSelect" class="form-control">
+              <option value="20">每页 20 张</option>
+              <option value="30">每页 30 张</option>
+              <option value="50" selected>每页 50 张</option>
+              <option value="100">每页 100 张</option>
+            </select>
+            <!-- 网格视图 -->
+            <button id="agGridViewBtn" class="btn btn-view active" title="网格视图">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </button>
+            <!-- 列表视图 -->
+            <button id="agListViewBtn" class="btn btn-view" title="列表视图">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </button>
+            <!-- 删除 -->
+            <button id="agDeleteBtn" class="btn btn-view" title="删除选中图片">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 图片区 -->
+        <div id="albumGallery" class="gallery-grid"></div>
+
+        <!-- 底部工具栏 -->
+        <div class="gallery-footer">
+          <div class="pagination">
+            <div id="agPaginationInfo">加载中...</div>
+          </div>
+          <div class="view-options">
+            <button id="agDeleteBtnBottom" class="btn btn-view" title="删除选中图片">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>
+            <div class="pagination-controls">
+              <button id="agPrevPageBottom" class="btn btn-icon" disabled title="上一页">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div id="agPageNumbersBottom" class="pagination-numbers"></div>
+              <button id="agNextPageBottom" class="btn btn-icon" disabled title="下一页">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div><!-- /albumDetail -->
+  </main>
+
+  <!-- 全页拖放遮罩（仅在相册详情页生效） -->
+  <div id="pageDropOverlay" class="page-drop-overlay">
+    <div class="page-drop-overlay-inner">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <p>松开鼠标上传到此相册</p>
+      <small>图片将自动添加到上传队列</small>
+    </div>
+  </div>
+
+  <!-- ═══ Modal: 新建/编辑相册 ═══ -->
+  <div class="modal-overlay" id="albumModal">
+    <div class="modal-box">
+      <h3 id="modalTitle">新建相册</h3>
+      <p class="modal-subtitle" id="modalSubtitle">创建一个新相册来整理你的图片</p>
+      <div class="modal-divider"></div>
+      <div class="form-group"><label>相册名称 <span style="color:var(--error-color)">*</span></label><input type="text" id="albumNameInput" placeholder="输入相册名称" maxlength="100"></div>
+      <div class="form-group"><label>相册描述 <span style="color:var(--text-secondary);font-weight:400">（选填）</span></label><textarea id="albumDescInput" placeholder="简短描述这个相册的内容"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="modalCancelBtn">取消</button>
+        <button class="btn btn-primary" id="modalSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Modal: 设置默认相册 ═══ -->
+  <div class="modal-overlay" id="defaultModal">
+    <div class="modal-box">
+      <h3>设置默认上传相册</h3>
+      <div id="defaultAlbumList" style="max-height:300px;overflow-y:auto;margin-bottom:16px;"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="defaultCancelBtn">取消</button>
+        <button class="btn btn-primary" id="defaultConfirmBtn" disabled>确认</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/auth-check.js" async></script>
+  <script src="/js/dark-mode.js" defer></script>
+  <script src="/js/album-gallery.js" defer></script>
+  <script>
+  (function () {
+    let albums = [];
+    let uncategorizedId = '';
+    let currentAlbum = null;
+    let editingAlbumId = null;
+    let pendingDefaultId = null;
+
+    // ── 工具 ──────────────────────────────────────────────────
+    function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function isUncategorized(id) { return String(id) === uncategorizedId; }
+    function getDefaultAlbumId() { return localStorage.getItem('defaultAlbumId') || ''; }
+    function setDefaultAlbumId(id) { localStorage.setItem('defaultAlbumId', id); }
+    function el(id) { return document.getElementById(id); }
+
+    // ── 相册列表 ──────────────────────────────────────────────
+    async function loadAlbums() {
+      const r = await fetch('/api/albums');
+      const d = await r.json();
+      if (!d.success) return;
+      albums = d.albums;
+      uncategorizedId = String(d.uncategorized_album_id || '');
+      if (window.albumGallery) window.albumGallery.setAlbums(albums);
+      renderAlbumList();
+      // 支持直接访问 /albums/:id
+      const m = location.pathname.match(/^\/albums\/(\d+)$/);
+      if (m) {
+        const a = albums.find(x => x.id === Number(m[1]));
+        if (a) { history.replaceState({ albumId: a.id }, '', location.pathname); _showAlbumDetail(a); }
+      }
+    }
+
+    // expose for album-gallery.js callbacks
+    window.albumPage = { refreshList: loadAlbums };
+
+    function renderAlbumList() {
+      const defaultId = getDefaultAlbumId();
+      const grid = el('albumsGrid');
+      if (!albums.length) {
+        grid.innerHTML = `<div class="empty-gallery" style="grid-column:1/-1">还没有相册，点击「新建相册」开始吧</div>`;
+        return;
+      }
+      grid.innerHTML = albums.map(a => {
+        const isSystem = isUncategorized(a.id);
+        const isDefault = String(a.id) === String(defaultId);
+        return `
+        <div class="album-card" data-id="${a.id}" title="单击打开，右键显示更多操作">
+          ${isDefault ? `<span class="album-badge album-badge-default">默认</span>` : isSystem ? `<span class="album-badge album-badge-system">系统</span>` : ''}
+          ${a.cover_url ? `<div class="album-cover"><img src="${esc(a.cover_url)}" alt="" loading="lazy"></div>` : `<div class="album-cover-placeholder">🖼️</div>`}
+          <div class="album-info">
+            <div class="album-name" title="${esc(a.name)}">${esc(a.name)}</div>
+            <div class="album-meta">${a.image_count} 张图片</div>
+            ${a.description ? `<div class="album-desc" title="${esc(a.description)}">${esc(a.description)}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+
+      grid.querySelectorAll('.album-card').forEach(c => {
+        c.addEventListener('click', () => openAlbum(Number(c.dataset.id)));
+        c.addEventListener('contextmenu', e => { e.preventDefault(); showAlbumContextMenu(e, albums.find(a => a.id === Number(c.dataset.id))); });
+      });
+    }
+
+    // ── 打开相册详情 ──────────────────────────────────────────
+    function openAlbum(id) {
+      currentAlbum = albums.find(a => a.id === id);
+      if (!currentAlbum) return;
+      history.pushState({ albumId: id }, '', `/albums/${id}`);
+      _showAlbumDetail(currentAlbum);
+    }
+
+    function _showAlbumDetail(album) {
+      currentAlbum = album;
+      el('detailAlbumName').textContent = album.name;
+      el('detailAlbumDesc').textContent = album.description || '';
+      updateDefaultBtn();
+      // 系统相册隐藏删除项及其分割线
+      const delBtn = el('deleteAlbumBtn');
+      const delDivider = delBtn.previousElementSibling;
+      const hideDelete = isUncategorized(album.id);
+      delBtn.style.display = hideDelete ? 'none' : '';
+      if (delDivider && delDivider.classList.contains('album-settings-divider')) delDivider.style.display = hideDelete ? 'none' : '';
+      el('albumList').style.display = 'none';
+      el('albumDetail').style.display = 'block';
+      // 重置上传面板为折叠状态
+      el('uploadBody').style.display = 'none';
+      el('uploadToggleIcon').textContent = '▼';
+      if (window.albumGallery) window.albumGallery.open(album.id, uncategorizedId, albums);
+    }
+
+    function updateDefaultBtn() {
+      const btn = el('setAsDefaultBtn');
+      const label = el('setAsDefaultLabel');
+      const yes = String(currentAlbum?.id) === getDefaultAlbumId();
+      if (label) label.textContent = yes ? '已是默认' : '设为默认';
+      btn.disabled = yes;
+    }
+
+    // ── 删除相册 ──────────────────────────────────────────────
+    async function deleteAlbum(id) {
+      if (isUncategorized(id)) { alert('「未分类」系统相册不可删除'); return; }
+      const a = albums.find(x => x.id === id);
+      if (!confirm(`确认删除相册「${a?.name || id}」？\n相册内图片将自动归入「未分类」，不会丢失。`)) return;
+      const r = await fetch(`/api/albums/${id}`, { method: 'DELETE' });
+      const d = await r.json();
+      if (d.success) { showSimpleToast('相册已删除'); await loadAlbums(); }
+      else showSimpleToast('删除失败: ' + d.error, true);
+    }
+
+    // ── 简易 Toast（页面级） ──────────────────────────────────
+    function showSimpleToast(msg, err = false) {
+      let t = el('simpleToast');
+      if (!t) { t = document.createElement('div'); t.id = 'simpleToast'; t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:9px 20px;border-radius:8px;font-size:.9rem;z-index:9999;transition:opacity .3s;box-shadow:0 4px 12px rgba(0,0,0,.15);'; document.body.appendChild(t); }
+      t.textContent = msg; t.style.background = err ? '#ef4444' : '#22c55e'; t.style.color = '#fff'; t.style.opacity = '1';
+      clearTimeout(t._timer); t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2600);
+    }
+
+    // ── 新建/编辑相册 ─────────────────────────────────────────
+    function openCreateModal() {
+      editingAlbumId = null;
+      el('modalTitle').textContent = '新建相册';
+      el('modalSubtitle').textContent = '创建一个新相册来整理你的图片';
+      el('albumNameInput').value = '';
+      el('albumDescInput').value = '';
+      el('albumModal').classList.add('active');
+      setTimeout(() => el('albumNameInput').focus(), 50);
+    }
+    function openEditModal(id) {
+      const a = albums.find(x => x.id === id); if (!a) return;
+      editingAlbumId = id;
+      el('modalTitle').textContent = '编辑相册';
+      el('modalSubtitle').textContent = `正在编辑「${a.name}」`;
+      el('albumNameInput').value = a.name;
+      el('albumDescInput').value = a.description || '';
+      el('albumModal').classList.add('active');
+      setTimeout(() => el('albumNameInput').focus(), 50);
+    }
+    function closeAlbumModal() { el('albumModal').classList.remove('active'); }
+
+    async function saveAlbum() {
+      const name = el('albumNameInput').value.trim();
+      const desc = el('albumDescInput').value.trim();
+      if (!name) { showSimpleToast('请输入相册名称', true); return; }
+      const url = editingAlbumId ? `/api/albums/${editingAlbumId}` : '/api/albums';
+      const r = await fetch(url, { method: editingAlbumId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, description: desc }) });
+      const d = await r.json();
+      if (d.success) {
+        closeAlbumModal();
+        showSimpleToast(editingAlbumId ? '相册已更新' : '相册已创建');
+        await loadAlbums();
+        if (editingAlbumId && currentAlbum?.id === editingAlbumId) {
+          currentAlbum.name = d.album.name; currentAlbum.description = d.album.description;
+          el('detailAlbumName').textContent = d.album.name;
+          el('detailAlbumDesc').textContent = d.album.description || '';
+        }
+      } else showSimpleToast('保存失败: ' + d.error, true);
+    }
+
+    // ── 默认相册 Modal ─────────────────────────────────────────
+    function openDefaultModal() {
+      const curDefault = getDefaultAlbumId();
+      pendingDefaultId = null;
+      const confirmBtn = el('defaultConfirmBtn');
+      if (confirmBtn) confirmBtn.disabled = true;
+      const list = el('defaultAlbumList');
+      list.innerHTML = `
+        <p style="color:var(--text-secondary);font-size:.82rem;margin:0 0 10px;padding:8px;background:var(--bg-secondary);border-radius:6px;">点击选择相册，然后点「确认」完成设置。</p>
+        <div class="default-album-item" data-id="" style="padding:10px;border-bottom:1px solid var(--border-color);cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="color:var(--text-secondary)">使用「未分类」（不指定默认）</span>
+          ${!curDefault ? '<span style="color:var(--primary-color);font-size:.78rem">当前</span>' : ''}
+        </div>
+        ${albums.map(a => `
+        <div class="default-album-item" data-id="${a.id}" style="padding:10px;border-bottom:1px solid var(--border-color);cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:space-between;">
+          <div><strong>${esc(a.name)}</strong>${isUncategorized(a.id) ? '<span style="font-size:.74rem;color:var(--text-secondary);margin-left:4px">[系统]</span>' : ''}<span style="color:var(--text-secondary);font-size:.8rem;margin-left:6px">${a.image_count} 张</span></div>
+          ${String(a.id) === curDefault ? '<span style="color:var(--primary-color);font-size:.78rem">当前默认</span>' : ''}
+        </div>`).join('')}`;
+      list.querySelectorAll('.default-album-item').forEach(item => {
+        item.addEventListener('click', () => {
+          list.querySelectorAll('.default-album-item').forEach(i => i.classList.remove('selected'));
+          item.classList.add('selected');
+          pendingDefaultId = item.dataset.id;
+          if (confirmBtn) confirmBtn.disabled = false;
+        });
+      });
+      el('defaultModal').classList.add('active');
+    }
+
+    // ── 内嵌上传 ──────────────────────────────────────────────
+    let inlineFileQueue = [];
+    let inlineDragCleanup = null;
+
+    // 格式选择持久化（与首页一致）
+    (function() {
+      const saved = localStorage.getItem('uploadFormat');
+      if (saved) {
+        const r = document.querySelector(`input[name="inlineFormat"][value="${saved}"]`);
+        if (r) r.checked = true;
+      }
+      document.querySelectorAll('input[name="inlineFormat"]').forEach(r => {
+        r.addEventListener('change', function() { localStorage.setItem('uploadFormat', this.value); });
+      });
+    })();
+
+    el('uploadToggle').addEventListener('click', () => {
+      const body = el('uploadBody');
+      const open = body.style.display === 'none';
+      body.style.display = open ? 'block' : 'none';
+      el('uploadToggleIcon').textContent = open ? '▲' : '▼';
+    });
+
+    const inlineDropArea = el('inlineDropArea');
+    const inlineFileInput = el('inlineFileInput');
+    inlineDropArea.addEventListener('click', () => inlineFileInput.click());
+    inlineDropArea.addEventListener('dragover', e => { e.preventDefault(); inlineDropArea.classList.add('drag-over'); });
+    inlineDropArea.addEventListener('dragleave', () => inlineDropArea.classList.remove('drag-over'));
+    inlineDropArea.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); inlineDropArea.classList.remove('drag-over'); addToInlineQueue(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'))); });
+    inlineFileInput.addEventListener('change', () => { addToInlineQueue(Array.from(inlineFileInput.files)); inlineFileInput.value = ''; });
+
+    function addToInlineQueue(files) {
+      files.forEach(file => {
+        if (file.type.startsWith('image/')) {
+          inlineFileQueue.push({ id: 'f' + Date.now() + '_' + Math.random().toString(36).slice(2), file });
+        }
+      });
+      renderInlinePreview();
+    }
+
+    function renderInlinePreview() {
+      if (inlineDragCleanup) { inlineDragCleanup(); inlineDragCleanup = null; }
+      const area = el('inlinePreviewArea');
+      area.innerHTML = '';
+      if (!inlineFileQueue.length) return;
+
+      const header = document.createElement('div');
+      header.className = 'inline-preview-header';
+      header.innerHTML = `<span class="inline-preview-title">上传队列（${inlineFileQueue.length} 张）</span><div style="display:flex;gap:6px;"><button type="button" class="btn btn-secondary" style="font-size:.78rem;padding:3px 10px;" id="inlineClearBtn">清空</button><button type="button" class="btn btn-primary" style="font-size:.84rem;" id="inlineUploadBtn">上传图片</button></div>`;
+      area.appendChild(header);
+
+      const list = document.createElement('div');
+      list.className = 'inline-preview-list';
+      list.id = 'inlinePreviewList';
+      area.appendChild(list);
+
+      const hint = document.createElement('div');
+      hint.className = 'inline-drag-hint';
+      hint.textContent = '提示：拖动图片可调整上传顺序';
+      area.appendChild(hint);
+
+      inlineFileQueue.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'inline-preview-item';
+        div.dataset.fileId = item.id;
+        div.title = item.file.name;
+        div.innerHTML = `<div class="inline-preview-img-wrap"><img src="#" alt=""></div><button type="button" class="inline-preview-del" title="移除">×</button>`;
+        const img = div.querySelector('img');
+        const reader = new FileReader();
+        reader.onload = e => { img.src = e.target.result; };
+        reader.readAsDataURL(item.file);
+        div.querySelector('.inline-preview-del').addEventListener('click', e => {
+          e.stopPropagation();
+          inlineFileQueue = inlineFileQueue.filter(f => f.id !== item.id);
+          renderInlinePreview();
+        });
+        list.appendChild(div);
+      });
+
+      el('inlineClearBtn').addEventListener('click', () => { inlineFileQueue = []; renderInlinePreview(); });
+      el('inlineUploadBtn').addEventListener('click', doUpload);
+      inlineDragCleanup = initInlineDragSort(list);
+    }
+
+    function initInlineDragSort(list) {
+      let dragged = null, initX, initY, initRect;
+
+      function onStart(e) {
+        const item = e.target.closest('.inline-preview-item');
+        if (!item || e.button !== 0 || e.target.closest('.inline-preview-del')) return;
+        e.preventDefault();
+        dragged = item; initRect = item.getBoundingClientRect(); initX = e.clientX; initY = e.clientY;
+        setTimeout(() => {
+          if (!dragged) return;
+          dragged.classList.add('dragging');
+          const ghost = dragged.cloneNode(true);
+          ghost.id = 'inlineDragGhost';
+          ghost.style.cssText = `position:fixed;top:${initRect.top}px;left:${initRect.left}px;width:${initRect.width}px;height:${initRect.height}px;opacity:.8;pointer-events:none;z-index:10000;transform:none;`;
+          document.body.appendChild(ghost);
+          dragged.style.opacity = '.3';
+        }, 50);
+      }
+
+      function onMove(e) {
+        if (!dragged) return;
+        const ghost = document.getElementById('inlineDragGhost');
+        if (ghost) ghost.style.transform = `translate(${e.clientX - initX}px,${e.clientY - initY}px) scale(.95)`;
+        const items = [...list.querySelectorAll('.inline-preview-item:not(.dragging)')];
+        let best = Infinity, target = null, before = true;
+        items.forEach(it => {
+          const r = it.getBoundingClientRect();
+          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          const d = Math.hypot(e.clientX - cx, e.clientY - cy);
+          if (d < best) { best = d; target = it; before = e.clientX < cx; }
+        });
+        if (target && dragged.parentNode === list) {
+          list.insertBefore(dragged, before ? target : target.nextSibling);
+        }
+      }
+
+      function onEnd() {
+        if (!dragged) return;
+        const ghost = document.getElementById('inlineDragGhost');
+        if (ghost) ghost.remove();
+        dragged.classList.remove('dragging');
+        dragged.style.opacity = '';
+        dragged = null;
+        const newQ = [];
+        list.querySelectorAll('.inline-preview-item').forEach(div => {
+          const fo = inlineFileQueue.find(f => f.id === div.dataset.fileId);
+          if (fo) newQ.push(fo);
+        });
+        inlineFileQueue = newQ;
+      }
+
+      list.addEventListener('mousedown', onStart);
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onEnd);
+      return function cleanup() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onEnd);
+      };
+    }
+
+    async function doUpload() {
+      if (!currentAlbum || !inlineFileQueue.length) return;
+      const fmt = document.querySelector('input[name="inlineFormat"]:checked').value;
+      const uploadBtn = el('inlineUploadBtn');
+      if (uploadBtn) uploadBtn.disabled = true;
+
+      const area = el('inlinePreviewArea');
+      const pw = document.createElement('div');
+      pw.className = 'inline-progress-wrap';
+      pw.id = 'inlineProgressWrap';
+      pw.innerHTML = `<div class="inline-progress-text" id="inlineProgressText">正在上传 ${inlineFileQueue.length} 张图片... 0%</div><div class="inline-progress-track"><div class="inline-progress-fill" id="inlineProgressFill" style="width:0%"></div></div>`;
+      area.appendChild(pw);
+
+      const fd = new FormData();
+      fd.append('storage', 'local');
+      fd.append('format', fmt);
+      fd.append('album_id', currentAlbum.id);
+      // 从后往前添加，保持显示顺序与上传顺序一致（与首页逻辑相同）
+      for (let i = inlineFileQueue.length - 1; i >= 0; i--) fd.append('images', inlineFileQueue[i].file);
+
+      const count = inlineFileQueue.length;
+      try {
+        const result = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.upload.addEventListener('progress', e => {
+            if (!e.lengthComputable) return;
+            const pct = Math.round(e.loaded / e.total * 100);
+            const fill = el('inlineProgressFill'), txt = el('inlineProgressText');
+            if (fill) fill.style.width = pct + '%';
+            if (txt) txt.textContent = `正在上传 ${count} 张图片... ${pct}%`;
+          });
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try { resolve(JSON.parse(xhr.responseText)); } catch (_) { reject(new Error('解析响应失败')); }
+            } else reject(new Error('上传失败: ' + xhr.status));
+          });
+          xhr.addEventListener('error', () => reject(new Error('网络错误')));
+          xhr.open('POST', '/upload');
+          xhr.send(fd);
+        });
+        if (result.success) {
+          showSimpleToast(`成功上传 ${result.images?.length || count} 张图片`);
+          inlineFileQueue = [];
+        } else showSimpleToast('上传失败: ' + (result.error || '未知错误'), true);
+      } catch (err) { showSimpleToast('上传出错: ' + err.message, true); }
+      finally {
+        const p = el('inlineProgressWrap');
+        if (p) p.remove();
+        renderInlinePreview();
+        if (window.albumGallery) window.albumGallery.reload();
+        await loadAlbums();
+      }
+    }
+
+    // ── 相册卡片右键菜单 ──────────────────────────────────────
+    function showAlbumContextMenu(e, album) {
+      if (!album) return;
+      let menu = el('albumContextMenu');
+      if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'albumContextMenu';
+        menu.className = 'context-menu';
+        document.body.appendChild(menu);
+      }
+      const isDefault = String(album.id) === getDefaultAlbumId();
+      const isSystem = isUncategorized(album.id);
+      menu.innerHTML = `
+        <div class="context-menu-item" data-action="open">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>打开相册
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" data-action="edit">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>编辑相册
+        </div>
+        <div class="context-menu-item${isDefault ? ' context-menu-disabled' : ''}" data-action="setDefault">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>${isDefault ? '已是默认相册' : '设为默认相册'}
+        </div>
+        ${!isSystem ? `<div class="context-menu-divider"></div><div class="context-menu-item context-menu-danger" data-action="delete"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>删除相册</div>` : ''}`;
+      menu.style.cssText = `display:block;position:absolute;top:${e.pageY}px;left:${e.pageX}px;z-index:9999;`;
+      requestAnimationFrame(() => {
+        const rect = menu.getBoundingClientRect();
+        if (rect.right > window.innerWidth) menu.style.left = (e.pageX - rect.width) + 'px';
+        if (rect.bottom > window.innerHeight) menu.style.top = (e.pageY - rect.height) + 'px';
+      });
+      menu.querySelectorAll('.context-menu-item[data-action]:not(.context-menu-disabled)').forEach(item => {
+        item.addEventListener('click', () => {
+          menu.style.display = 'none';
+          const action = item.dataset.action;
+          if (action === 'open') openAlbum(album.id);
+          else if (action === 'edit') openEditModal(album.id);
+          else if (action === 'setDefault') {
+            setDefaultAlbumId(String(album.id));
+            showSimpleToast('已设为默认上传相册');
+            renderAlbumList();
+            if (currentAlbum?.id === album.id) updateDefaultBtn();
+          }
+          else if (action === 'delete') deleteAlbum(album.id);
+        });
+      });
+      const hideMenu = (ev) => { if (!menu.contains(ev.target)) { menu.style.display = 'none'; document.removeEventListener('click', hideMenu); } };
+      requestAnimationFrame(() => document.addEventListener('click', hideMenu));
+    }
+
+    // ── 事件绑定 ──────────────────────────────────────────────
+    el('createAlbumBtn').addEventListener('click', openCreateModal);
+    el('setDefaultAlbumBtn').addEventListener('click', openDefaultModal);
+    el('backToListBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      el('albumDetail').style.display = 'none'; el('albumList').style.display = 'block'; currentAlbum = null;
+      history.pushState({}, '', '/albums');
+    });
+
+    // 设置下拉菜单
+    el('albumSettingsBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const menu = el('albumSettingsMenu');
+      menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    });
+    document.addEventListener('click', () => {
+      const menu = el('albumSettingsMenu');
+      if (menu) menu.style.display = 'none';
+    });
+
+    el('editAlbumBtn').addEventListener('click', () => { if (currentAlbum) openEditModal(currentAlbum.id); });
+    el('deleteAlbumBtn').addEventListener('click', async () => {
+      if (!currentAlbum || isUncategorized(currentAlbum.id)) return;
+      if (!confirm(`确认删除相册「${currentAlbum.name}」？\n相册内图片将自动归入「未分类」，不会丢失。`)) return;
+      const r = await fetch(`/api/albums/${currentAlbum.id}`, { method: 'DELETE' });
+      const d = await r.json();
+      if (d.success) {
+        showSimpleToast('相册已删除，图片已归入「未分类」');
+        await loadAlbums();
+        el('albumDetail').style.display = 'none'; el('albumList').style.display = 'block'; currentAlbum = null;
+        history.pushState({}, '', '/albums');
+      } else showSimpleToast('删除失败: ' + d.error, true);
+    });
+    el('setAsDefaultBtn').addEventListener('click', () => {
+      if (!currentAlbum) return;
+      setDefaultAlbumId(String(currentAlbum.id));
+      showSimpleToast('已设为默认上传相册');
+      updateDefaultBtn(); renderAlbumList();
+    });
+    el('modalCancelBtn').addEventListener('click', closeAlbumModal);
+    el('modalSaveBtn').addEventListener('click', saveAlbum);
+    el('albumNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveAlbum(); });
+    el('defaultCancelBtn').addEventListener('click', () => { el('defaultModal').classList.remove('active'); pendingDefaultId = null; });
+    el('defaultConfirmBtn').addEventListener('click', () => {
+      if (pendingDefaultId === null) return;
+      setDefaultAlbumId(pendingDefaultId);
+      showSimpleToast(pendingDefaultId ? '默认相册已设置' : '已恢复为「未分类」默认');
+      el('defaultModal').classList.remove('active');
+      pendingDefaultId = null;
+      renderAlbumList();
+      if (currentAlbum) updateDefaultBtn();
+    });
+
+    // 点击遮罩关闭 Modal
+    document.querySelectorAll('.modal-overlay').forEach(o => { o.addEventListener('click', e => { if (e.target === o) o.classList.remove('active'); }); });
+
+    // 浏览器前进/后退
+    window.addEventListener('popstate', e => {
+      if (e.state?.albumId) {
+        const a = albums.find(x => x.id === Number(e.state.albumId));
+        if (a) _showAlbumDetail(a);
+      } else {
+        el('albumDetail').style.display = 'none'; el('albumList').style.display = 'block'; currentAlbum = null;
+      }
+    });
+
+    // ── 全页拖放上传 ──────────────────────────────────────────
+    (function () {
+      const overlay = el('pageDropOverlay');
+      let dragCounter = 0;
+
+      function hasImageFiles(dt) {
+        if (!dt) return false;
+        for (const item of dt.items) {
+          if (item.kind === 'file' && item.type.startsWith('image/')) return true;
+        }
+        return false;
+      }
+
+      function showOverlay() { overlay.classList.add('active'); }
+      function hideOverlay() { overlay.classList.remove('active'); }
+
+      document.addEventListener('dragenter', (e) => {
+        // 只在相册详情可见且有图片文件时激活
+        if (el('albumDetail').style.display === 'none') return;
+        if (!hasImageFiles(e.dataTransfer)) return;
+        e.preventDefault();
+        dragCounter++;
+        if (dragCounter === 1) showOverlay();
+      });
+
+      document.addEventListener('dragover', (e) => {
+        if (el('albumDetail').style.display === 'none') return;
+        if (!hasImageFiles(e.dataTransfer)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+      });
+
+      document.addEventListener('dragleave', (e) => {
+        if (el('albumDetail').style.display === 'none') return;
+        dragCounter--;
+        if (dragCounter <= 0) { dragCounter = 0; hideOverlay(); }
+      });
+
+      document.addEventListener('drop', (e) => {
+        if (el('albumDetail').style.display === 'none') return;
+        dragCounter = 0;
+        hideOverlay();
+        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+        if (!files.length) return;
+        e.preventDefault();
+        // 展开上传面板
+        const body = el('uploadBody');
+        if (body.style.display === 'none') {
+          body.style.display = 'block';
+          el('uploadToggleIcon').textContent = '▲';
+        }
+        // 添加到队列
+        addToInlineQueue(files);
+        // 滚动到上传区域
+        el('uploadToggle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+
+      overlay.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    })();
+
+    // ── 初始化 ────────────────────────────────────────────────
+    loadAlbums();
+  })();
+  </script>
+</body>
+</html>

@@ -1,10 +1,6 @@
 const express = require('express');
 const { generateToken } = require('../services/image-processor');
 
-/**
- * API令牌管理相关路由
- * 包括API启用状态、默认格式设置、令牌创建和删除等
- */
 function createApiManagementRoutes(isAuthenticated, configLoader) {
   const router = express.Router();
   const config = configLoader.getConfig();
@@ -14,13 +10,12 @@ function createApiManagementRoutes(isAuthenticated, configLoader) {
    */
   router.get('/api/tokens', isAuthenticated, async (req, res) => {
     try {
-      // 简化逻辑：直接使用内存中的配置
-      // saveConfig() 已经确保配置同步到Redis和文件
       res.json({
         success: true,
         enabled: config.api.enabled,
         tokens: config.api.tokens,
-        defaultFormat: config.api.defaultFormat
+        defaultFormat: config.api.defaultFormat,
+        defaultAlbumId: config.api.defaultAlbumId || null
       });
     } catch (error) {
       console.error('获取API设置失败:', error);
@@ -79,6 +74,21 @@ function createApiManagementRoutes(isAuthenticated, configLoader) {
         success: false,
         message: '保存设置失败'
       });
+    }
+  });
+
+  /**
+   * 设置API默认上传相册
+   */
+  router.post('/api/album', isAuthenticated, async (req, res) => {
+    try {
+      const { albumId } = req.body;
+      config.api.defaultAlbumId = albumId ? parseInt(albumId) : null;
+      await configLoader.saveConfig();
+      res.json({ success: true, albumId: config.api.defaultAlbumId });
+    } catch (error) {
+      console.error('设置API默认相册失败:', error);
+      res.status(500).json({ success: false, message: '保存设置失败' });
     }
   });
 

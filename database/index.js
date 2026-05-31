@@ -12,7 +12,7 @@ if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'test') {
 const ConnectionMixin = require('./connection');
 const SchemaMixin = require('./schema');
 const ImagesMixin = require('./images');
-const CategoriesMixin = require('./categories');
+const AlbumsMixin = require('./albums');
 const BackupMixin = require('./backup');
 const SettingsMixin = require('./settings');
 const IntegrityMixin = require('./integrity');
@@ -49,7 +49,7 @@ class ImageDatabase {
 
       await this.detectPgTools();
 
-      await this.ensureApiUploadCategory();
+      await this.ensureUncategorizedAlbum();
 
       await this.startDataIntegrityCheck();
 
@@ -74,7 +74,7 @@ Object.assign(
   ConnectionMixin,
   SchemaMixin,
   ImagesMixin,
-  CategoriesMixin,
+  AlbumsMixin,
   BackupMixin,
   SettingsMixin,
   IntegrityMixin,

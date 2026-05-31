@@ -14,7 +14,7 @@
       <nav class="nav">
         <a href="/" class="btn btn-outline">首页</a>
         <a href="/gallery" class="btn btn-outline">我的图片库</a>
-        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/albums" class="btn btn-outline">我的相册</a>
         <a href="/admin-center" class="btn btn-outline">管理中心</a>
         <a href="/settings" class="btn btn-primary">系统设置</a>
         <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
@@ -52,10 +52,6 @@
           <a href="#domain-security" class="nav-item" data-section="domain-security">
             <span class="nav-icon">🔒</span>
             域名安全设置
-          </a>
-          <a href="#category-management" class="nav-item" data-section="category-management">
-            <span class="nav-icon">🏷️</span>
-            分类管理
           </a>
           <a href="#storage-config" class="nav-item" data-section="storage-config">
             <span class="nav-icon">💾</span>
@@ -574,108 +570,6 @@
         </section>
 
 
-        <!-- 分类管理部分 -->
-        <section id="category-management-section" class="settings-section">
-          <div class="section-header">
-            <h2>分类管理</h2>
-            <p class="section-description">创建和管理图片分类</p>
-          </div>
-
-          <div class="settings-row">
-            <div class="settings-col-main">
-              <div class="config-section">
-                <div class="config-header">
-                  <h3>添加新分类</h3>
-                </div>
-                <div class="config-content">
-                  <form id="addCategoryForm" class="d-flex gap-2">
-                    <div class="form-group flex-grow-1">
-                      <input type="text" id="newCategoryName" placeholder="新分类名称" class="form-control">
-                    </div>
-                    <button type="submit" id="addCategoryBtn" class="btn btn-primary">添加分类</button>
-                  </form>
-                  
-                  <!-- 添加二级分类表单 -->
-                  <div class="subcategory-form-separator" style="margin: 15px 0; border-top: 1px solid var(--border-color);"></div>
-                  <form id="addSubcategoryForm" class="d-flex flex-column gap-2">
-                    <h4>添加二级分类</h4>
-                    <div class="form-group">
-                      <label for="parentCategorySelect" class="form-label">父分类</label>
-                      <select id="parentCategorySelect" class="form-select">
-                        <!-- 选项将由JavaScript动态填充 -->
-                      </select>
-                      <!-- 帮助信息由JS代码动态添加 -->
-                    </div>
-                    <div class="form-group">
-                      <label for="newSubcategoryName" class="form-label">二级分类名称</label>
-                      <input type="text" id="newSubcategoryName" placeholder="二级分类名称" class="form-control">
-                    </div>
-                    <div class="form-group">
-                      <button type="submit" id="addSubcategoryBtn" class="btn btn-primary">添加二级分类</button>
-                    </div>
-                  </form>
-                  
-                  <div class="alert alert-info" style="margin-top: 15px;">
-                    <strong>分类层级限制：</strong>系统最多只支持二级分类结构，不支持创建三级或更多级的分类嵌套。
-                  </div>
-                </div>
-              </div>
-
-              <div class="config-section">
-                <div class="config-header">
-                  <h3>默认分类设置</h3>
-                </div>
-                <div class="config-content">
-                  <div class="form-group">
-                    <label for="defaultCategory" class="form-label">进入分类管理页面时默认显示</label>
-                    <select id="defaultCategory" class="form-select">
-                      <option value="">不自动显示任何分类</option>
-                      <!-- 其他选项由JavaScript动态添加 -->
-                    </select>
-                    <div class="form-help">选择进入分类管理页面时默认展示的分类，或者不展示任何分类</div>
-                  </div>
-                  <div class="action-buttons">
-                    <button type="button" id="saveDefaultCategoryBtn" class="btn btn-primary">保存设置</button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="config-section">
-                <div class="config-header">
-                  <h3>已有分类</h3>
-                </div>
-                <div class="config-content">
-                  <div id="categoryList" class="category-list">
-                    <!-- 分类列表由 JavaScript 渲染 -->
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="settings-col-sidebar">
-              <div class="config-section">
-                <div class="config-header">
-                  <h3>使用说明</h3>
-                </div>
-                <div class="config-content">
-                  <p>您可以在这里创建、重命名和删除图片分类。</p>
-                  <ul>
-                    <li>点击<strong>添加分类</strong>按钮创建新的分类</li>
-                    <li>使用<strong>编辑</strong>按钮修改分类名称</li>
-                    <li>使用<strong>删除</strong>按钮删除不需要的分类</li>
-                    <li>设置<strong>默认分类</strong>控制进入分类管理页面时自动展示的内容</li>
-                  </ul>
-                  <div class="alert alert-info">
-                    <strong>提示：</strong>在分类管理页面可以管理各分类下的图片。
-                  </div>
-                  <div class="mt-3">
-                    <a href="/categories" class="btn btn-outline">前往分类管理页面</a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
 
         <!-- 存储配置部分 -->
         <section id="storage-config-section" class="settings-section">

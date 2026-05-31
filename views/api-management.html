@@ -112,7 +112,7 @@
       <nav class="nav">
         <a href="/" class="btn btn-outline">上传</a>
         <a href="/gallery" class="btn btn-outline">我的图片库</a>
-        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/albums" class="btn btn-outline">我的相册</a>
         <a href="/admin-center" class="btn btn-outline">管理中心</a>
         <a href="/api-management" class="btn btn-outline">API管理</a>
         <a href="/settings" class="btn btn-outline">系统设置</a>
@@ -155,6 +155,16 @@
               </div>
               <p style="margin-top: var(--spacing-sm); color: var(--text-secondary);">
                 此设置将应用于所有通过API上传的图片。如果API请求中未指定format参数，将使用此默认设置。
+              </p>
+            </div>
+
+            <div class="format-radio-group" style="margin-top: var(--spacing-md);">
+              <h3 style="margin-bottom: var(--spacing-sm);">API上传默认相册</h3>
+              <select id="defaultAlbumSelect" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: var(--input-border-radius); background-color: var(--bg-color); color: var(--text-color);">
+                <option value="">加载中...</option>
+              </select>
+              <p style="margin-top: var(--spacing-sm); color: var(--text-secondary);">
+                通过API上传的图片将自动归入此相册。如果API请求中已指定album_id参数，则优先使用请求中的值。
               </p>
             </div>
           </div>
@@ -218,13 +228,14 @@
             <h3 style="margin: var(--spacing-md) 0 var(--spacing-sm);">API端点</h3>
             <ul style="padding-left: var(--spacing-lg);">
               <li><code>/api/upload</code> - 上传图片</li>
-              <li>可选参数 <code>format</code>: 
+              <li>可选参数 <code>format</code>:
                 <ul style="margin-top: var(--spacing-xs);">
                   <li><code>original</code> - 保持原始格式</li>
                   <li><code>webp</code> - 转换为WebP格式</li>
                   <li><code>avif</code> - 转换为AVIF格式</li>
                 </ul>
               </li>
+              <li>可选参数 <code>album_id</code>（POST body）: 指定上传到的相册ID，未指定时使用页面中设置的默认相册</li>
             </ul>
             
             <h3 style="margin: var(--spacing-md) 0 var(--spacing-sm);">认证方式</h3>
@@ -263,6 +274,11 @@
         radio.addEventListener('change', function() {
           updateDefaultFormat(this.value);
         });
+      });
+
+      // 设置相册选择事件
+      document.getElementById('defaultAlbumSelect').addEventListener('change', function() {
+        updateDefaultAlbum(this.value);
       });
       
       // 添加复制功能函数
@@ -357,8 +373,10 @@
             formatRadios.forEach(radio => {
               radio.checked = radio.value === (data.defaultFormat || 'original');
             });
-            console.log('默认格式设置为:', data.defaultFormat || 'original');
-            
+
+            // 加载相册列表并选中默认相册
+            loadAlbums(data.defaultAlbumId);
+
             // 更新令牌列表
             renderTokenList(data.tokens || []);
             console.log('令牌列表已更新，共', (data.tokens || []).length, '个令牌');
@@ -565,14 +583,61 @@
           showToast('默认格式设置已更新');
         } else {
           alert('更新默认格式失败: ' + (data.message || '未知错误'));
-          // 重置格式选择
           fetchApiStatus();
         }
       })
       .catch(error => {
         console.error('更新默认格式请求失败:', error);
         alert('更新默认格式请求失败，请稍后再试');
-        // 重置格式选择
+        fetchApiStatus();
+      });
+    }
+
+    // 加载相册列表
+    function loadAlbums(selectedAlbumId) {
+      fetch('/api/albums')
+        .then(response => response.json())
+        .then(data => {
+          const select = document.getElementById('defaultAlbumSelect');
+          select.innerHTML = '<option value="">未分类（默认）</option>';
+          if (data.success && data.albums) {
+            data.albums.forEach(album => {
+              const option = document.createElement('option');
+              option.value = album.id;
+              option.textContent = album.name;
+              if (selectedAlbumId && String(album.id) === String(selectedAlbumId)) {
+                option.selected = true;
+              }
+              select.appendChild(option);
+            });
+          }
+        })
+        .catch(error => {
+          console.error('加载相册列表失败:', error);
+          const select = document.getElementById('defaultAlbumSelect');
+          select.innerHTML = '<option value="">加载失败，请刷新重试</option>';
+        });
+    }
+
+    // 更新默认相册
+    function updateDefaultAlbum(albumId) {
+      fetch('/api/album', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ albumId: albumId || null })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showToast('默认相册设置已更新');
+        } else {
+          showToast('更新默认相册失败: ' + (data.message || '未知错误'), 'error');
+          fetchApiStatus();
+        }
+      })
+      .catch(error => {
+        console.error('更新默认相册请求失败:', error);
+        showToast('更新默认相册请求失败，请稍后再试', 'error');
         fetchApiStatus();
       });
     }

@@ -13,7 +13,7 @@
       <a href="/" class="logo">现代图床</a>
       <nav class="nav">
         <a href="/gallery" class="btn btn-outline">我的图片库</a>
-        <a href="/categories" class="btn btn-outline">分类管理</a>
+        <a href="/albums" class="btn btn-outline">我的相册</a>
         <a href="/admin-center" class="btn btn-outline">管理中心</a>
         <a href="/settings" class="btn btn-outline">系统设置</a>
         <button id="toggleDarkMode" class="btn btn-outline">暗色模式</button>
@@ -53,7 +53,17 @@
         <input type="hidden" name="storage" value="local">
         <!-- 隐藏的格式字段用于同步选择 -->
         <input type="hidden" id="formatValue" name="format" value="original">
-        
+        <!-- 相册选择 -->
+        <input type="hidden" id="albumIdValue" name="album_id" value="">
+
+        <div class="album-selector-row" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <label for="albumSelect" style="white-space:nowrap;color:var(--text-secondary);font-size:0.9rem;">上传到相册:</label>
+          <select id="albumSelect" class="form-control" style="max-width:260px;">
+            <option value="">加载中...</option>
+          </select>
+          <a href="/albums" style="font-size:0.85rem;color:var(--primary);text-decoration:none;white-space:nowrap;">管理相册</a>
+        </div>
+
         <div class="action-buttons">
           <button type="reset" class="btn btn-secondary">重置</button>
           <button type="submit" id="uploadBtn" class="btn btn-primary">上传图片</button>
@@ -113,30 +123,61 @@
   <script src="/js/main.js?v=031b" defer></script>
   <script src="/js/dark-mode.js" defer></script>
   <script>
-    // 添加格式选择同步功能
     document.addEventListener('DOMContentLoaded', function() {
-      // 获取所有格式选项和隐藏的格式字段
+      // 格式选择同步
       const formatRadios = document.querySelectorAll('input[name="format"][type="radio"]');
       const formatValue = document.getElementById('formatValue');
-      
-      // 从localStorage恢复上次的格式选择
       const savedFormat = localStorage.getItem('uploadFormat');
       if (savedFormat) {
         const savedRadio = document.querySelector(`input[name="format"][value="${savedFormat}"]`);
-        if (savedRadio) {
-          savedRadio.checked = true;
-          formatValue.value = savedFormat;
-        }
+        if (savedRadio) { savedRadio.checked = true; formatValue.value = savedFormat; }
       }
-      
-      // 为每个选项添加事件监听器
       formatRadios.forEach(radio => {
         radio.addEventListener('change', function() {
           formatValue.value = this.value;
-          // 保存用户的选择到localStorage
           localStorage.setItem('uploadFormat', this.value);
         });
       });
+
+      // 相册选择器（强制选择，无「不归属相册」）
+      const albumSelect = document.getElementById('albumSelect');
+      const albumIdValue = document.getElementById('albumIdValue');
+
+      let albumsInitialized = false;
+
+      async function loadAlbums() {
+        try {
+          const currentValue = albumsInitialized ? albumSelect.value : null;
+          const resp = await fetch('/api/albums');
+          const data = await resp.json();
+          if (!data.success) return;
+          const defaultAlbumId = localStorage.getItem('defaultAlbumId') || '';
+          const uncategorizedId = String(data.uncategorized_album_id || '');
+          albumSelect.innerHTML = '';
+          data.albums.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.id;
+            const isUncategorized = String(a.id) === uncategorizedId;
+            opt.textContent = isUncategorized ? `${a.name}（默认）` : `${a.name}（${a.image_count} 张）`;
+            albumSelect.appendChild(opt);
+          });
+          // 首次加载用默认相册；后续刷新保留用户手动选择的相册
+          const target = currentValue || defaultAlbumId || uncategorizedId;
+          if (target) {
+            const match = albumSelect.querySelector(`option[value="${target}"]`);
+            if (match) match.selected = true;
+          }
+          albumIdValue.value = albumSelect.value;
+          albumsInitialized = true;
+        } catch (e) { console.warn('加载相册失败', e); }
+      }
+
+      albumSelect.addEventListener('change', function() {
+        albumIdValue.value = this.value;
+      });
+
+      window.loadAlbums = loadAlbums;
+      loadAlbums();
     });
   </script>
 </body>

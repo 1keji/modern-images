@@ -377,63 +377,6 @@ function createSettingsRoutes(configLoader, imageDb, isAuthenticated) {
     }
   });
 
-  /**
-   * 获取默认分类设置
-   */
-  router.get('/api/settings/defaultCategory', (req, res) => {
-    try {
-      // 从配置文件中获取默认分类设置
-      const defaultCategoryId = config.defaultCategory || '';
-
-      res.json({
-        success: true,
-        defaultCategoryId: defaultCategoryId
-      });
-    } catch (error) {
-      console.error('获取默认分类设置失败:', error);
-      res.status(500).json({
-        success: false,
-        error: '获取默认分类设置失败'
-      });
-    }
-  });
-
-  /**
-   * 保存默认分类设置
-   */
-  router.post('/api/settings/defaultCategory', isAuthenticated, async (req, res) => {
-    try {
-      const { defaultCategoryId } = req.body;
-
-      // 限制只能保存空设置、'all'或'uncategorized'作为默认分类
-      if (defaultCategoryId && defaultCategoryId !== 'all' && defaultCategoryId !== 'uncategorized') {
-        return res.status(400).json({
-          success: false,
-          error: '只能设置为空、全部图片或未分类作为默认分类'
-        });
-      }
-
-      // 保存到配置对象
-      config.defaultCategory = defaultCategoryId;
-
-      // 保存到配置文件
-      await configLoader.saveConfig();
-
-      console.log('已设置默认分类:', defaultCategoryId);
-
-      res.json({
-        success: true,
-        message: '默认分类设置已保存'
-      });
-    } catch (error) {
-      console.error('保存默认分类设置失败:', error);
-      res.status(500).json({
-        success: false,
-        error: '保存默认分类设置失败'
-      });
-    }
-  });
-
   return router;
 }
 

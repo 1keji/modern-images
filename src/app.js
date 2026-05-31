@@ -18,7 +18,7 @@ const createAuthRoutes = require('./routes/auth.routes');
 const createViewsRoutes = require('./routes/views.routes');
 const createUploadRoutes = require('./routes/upload.routes');
 const createImagesRoutes = require('./routes/images.routes');
-const createCategoriesRoutes = require('./routes/categories.routes');
+const createAlbumsRoutes = require('./routes/albums.routes');
 const createSettingsRoutes = require('./routes/settings.routes');
 const createApiManagementRoutes = require('./routes/api-management.routes');
 const createStorageRoutes = require('./routes/storage.routes');
@@ -93,23 +93,30 @@ function createApp(dependencies) {
   ensureDirExistence(path.join(process.cwd(), 'temp'));
   ensureDirExistence(path.join(process.cwd(), 'uploads'));
 
-  // === 2025优化：公共静态资源（CSS、JS等）添加缓存策略 ===
-  // CSS和JS文件缓存1天，启用协商缓存
+  // === 静态资源缓存策略（受 DEBUG_MODE 控制）===
+  // DEBUG_MODE=T: no-cache（每次重新验证，适合开发调试）
+  // DEBUG_MODE=F: max-age=86400（强缓存1天，适合生产环境）
+  const debugMode = process.env.DEBUG_MODE === 'T';
+  const staticCacheControl = debugMode
+    ? 'no-cache'
+    : 'public, max-age=86400, must-revalidate';
+  const staticMaxAge = debugMode ? 0 : '1d';
+
   app.use('/css', express.static(path.join(process.cwd(), 'public', 'css'), {
-    maxAge: '1d',
+    maxAge: staticMaxAge,
     etag: true,
     lastModified: true,
     setHeaders: (res) => {
-      res.setHeader('Cache-Control', 'public, max-age=86400, must-revalidate');
+      res.setHeader('Cache-Control', staticCacheControl);
     }
   }));
 
   app.use('/js', express.static(path.join(process.cwd(), 'public', 'js'), {
-    maxAge: '1d',
+    maxAge: staticMaxAge,
     etag: true,
     lastModified: true,
     setHeaders: (res) => {
-      res.setHeader('Cache-Control', 'public, max-age=86400, must-revalidate');
+      res.setHeader('Cache-Control', staticCacheControl);
     }
   }));
 
@@ -181,7 +188,7 @@ function createApp(dependencies) {
     config,
     fileSystemCache
   }));
-  app.use(createCategoriesRoutes({
+  app.use(createAlbumsRoutes({
     isAuthenticated,
     imageDb
   }));

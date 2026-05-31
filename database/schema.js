@@ -22,15 +22,6 @@ const SchemaMixin = {
       )
     `;
 
-    const createCategoriesTable = `
-      CREATE TABLE IF NOT EXISTS categories (
-        id SERIAL PRIMARY KEY,
-        name TEXT UNIQUE NOT NULL,
-        parent_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `;
-
     const createSettingsTable = `
       CREATE TABLE IF NOT EXISTS system_settings (
         id SERIAL PRIMARY KEY,
@@ -42,14 +33,37 @@ const SchemaMixin = {
       )
     `;
 
-    const addCategoryIdColumn = `
-      ALTER TABLE images
-      ADD COLUMN IF NOT EXISTS category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL
-    `;
-
     const addIsAnimatedColumn = `
       ALTER TABLE images
       ADD COLUMN IF NOT EXISTS is_animated BOOLEAN DEFAULT false
+    `;
+
+    const createAlbumsTable = `
+      CREATE TABLE IF NOT EXISTS albums (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        cover_image_id INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    const addAlbumIdColumn = `
+      ALTER TABLE images
+      ADD COLUMN IF NOT EXISTS album_id INTEGER
+    `;
+
+    const addAlbumsForeignKey = `
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'fk_albums_cover_image'
+        ) THEN
+          ALTER TABLE albums ADD CONSTRAINT fk_albums_cover_image
+            FOREIGN KEY (cover_image_id) REFERENCES images(id) ON DELETE SET NULL;
+        END IF;
+      END $$
     `;
 
     const createIndexes = [
@@ -57,34 +71,30 @@ const SchemaMixin = {
       'CREATE INDEX IF NOT EXISTS idx_images_upload_time ON images(upload_time DESC)',
       'CREATE INDEX IF NOT EXISTS idx_images_storage ON images(storage)',
       'CREATE INDEX IF NOT EXISTS idx_images_created_at ON images(created_at)',
-      'CREATE INDEX IF NOT EXISTS idx_images_category ON images(category_id)',
-      'CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id)',
       'CREATE INDEX IF NOT EXISTS idx_settings_key ON system_settings(key)',
       'CREATE INDEX IF NOT EXISTS idx_settings_updated_at ON system_settings(updated_at)',
       'CREATE INDEX IF NOT EXISTS idx_images_storage_created ON images(storage, created_at)',
-      'CREATE INDEX IF NOT EXISTS idx_images_category_created ON images(category_id, created_at)',
       'CREATE INDEX IF NOT EXISTS idx_images_format ON images(format)',
       'CREATE INDEX IF NOT EXISTS idx_images_file_size ON images(file_size)',
-      'CREATE INDEX IF NOT EXISTS idx_images_category_null ON images(category_id) WHERE category_id IS NULL',
-      'CREATE INDEX IF NOT EXISTS idx_categories_name_lower ON categories(LOWER(name))',
-      'CREATE INDEX IF NOT EXISTS idx_images_hot_path_covering ON images(created_at DESC, storage, category_id) INCLUDE (id, filename, path, url, markdown_code, file_size, format)',
+      'CREATE INDEX IF NOT EXISTS idx_images_hot_path_covering ON images(created_at DESC, storage) INCLUDE (id, filename, path, url, markdown_code, file_size, format)',
       'CREATE INDEX IF NOT EXISTS idx_images_created_id_desc ON images(created_at DESC, id DESC)',
-      'CREATE INDEX IF NOT EXISTS idx_images_uncategorized_created ON images(created_at DESC) WHERE category_id IS NULL',
-      'CREATE INDEX IF NOT EXISTS idx_images_storage_created_covering ON images(storage, created_at DESC) INCLUDE (id, filename, path, url, category_id)',
+      'CREATE INDEX IF NOT EXISTS idx_images_storage_created_covering ON images(storage, created_at DESC) INCLUDE (id, filename, path, url)',
       'CREATE INDEX IF NOT EXISTS idx_images_upload_time_desc_id ON images(upload_time DESC, id ASC)',
-      'CREATE INDEX IF NOT EXISTS idx_images_category_upload_time ON images(category_id, upload_time DESC) INCLUDE (id, filename, path, url, markdown_code, html_code, file_size, format, storage)',
-      'CREATE INDEX IF NOT EXISTS idx_images_storage_upload_time ON images(storage, upload_time DESC) INCLUDE (id, filename, path, url, category_id)',
-      'CREATE INDEX IF NOT EXISTS idx_images_is_animated ON images(is_animated) WHERE is_animated = true'
+      'CREATE INDEX IF NOT EXISTS idx_images_storage_upload_time ON images(storage, upload_time DESC) INCLUDE (id, filename, path, url)',
+      'CREATE INDEX IF NOT EXISTS idx_images_is_animated ON images(is_animated) WHERE is_animated = true',
+      'CREATE INDEX IF NOT EXISTS idx_images_album ON images(album_id)',
+      'CREATE INDEX IF NOT EXISTS idx_albums_created_at ON albums(created_at DESC)'
     ];
 
     try {
       const client = await this.pool.connect();
       try {
         await client.query(createImagesTable);
-        await client.query(createCategoriesTable);
         await client.query(createSettingsTable);
-        await client.query(addCategoryIdColumn);
         await client.query(addIsAnimatedColumn);
+        await client.query(createAlbumsTable);
+        await client.query(addAlbumIdColumn);
+        await client.query(addAlbumsForeignKey);
         for (const indexSql of createIndexes) {
           await client.query(indexSql);
         }

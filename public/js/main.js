@@ -518,6 +518,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     formData.append('storage', selectedStorage);
     formData.append('format', selectedFormat);
+
+    // 获取选中的相册ID
+    const pasteAlbumIdInput = document.getElementById('albumIdValue');
+    if (pasteAlbumIdInput && pasteAlbumIdInput.value) {
+      formData.append('album_id', pasteAlbumIdInput.value);
+    }
+
     formData.append('images', imageFile);
     
     try {
@@ -561,6 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         loadGallery(); // 刷新图片库
+        if (window.loadAlbums) window.loadAlbums(); // 刷新相册图片数量
       } else {
         showToast(`上传失败: ${result.error}`, 'error');
       }
@@ -609,7 +617,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     formData.append('format', selectedFormat);
-    
+
+    // 获取选中的相册ID
+    const albumIdInput = document.getElementById('albumIdValue');
+    if (albumIdInput && albumIdInput.value) {
+      formData.append('album_id', albumIdInput.value);
+    }
+
     // 按照队列顺序从后往前添加文件（保持显示顺序与本地一致）
     for (let i = fileQueue.length - 1; i >= 0; i--) {
       formData.append('images', fileQueue[i].file);
@@ -740,6 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         loadGallery(); // 刷新图片库
+        if (window.loadAlbums) window.loadAlbums(); // 刷新相册图片数量
       } else {
         showToast(`上传失败: ${result.error}`, 'error');
       }

@@ -77,6 +77,7 @@ function createUploadRoutes({
     try {
       // format: "original", "webp", "avif"，默认 original
       const formatOption = req.body.format || 'original';
+      const albumId = req.body.album_id ? parseInt(req.body.album_id) || null : null;
 
       let resultImages = [];
       // 获取年月日文件夹路径及基本 URL
@@ -204,7 +205,8 @@ function createUploadRoutes({
           format: outputFormat,
           url: imageUrl,
           htmlCode: `<img src="${imageUrl}" alt="${outputFilename}" />`,
-          markdownCode: `![](${imageUrl})`
+          markdownCode: `![](${imageUrl})`,
+          albumId: albumId
         };
 
         // 添加到图片记录
@@ -245,22 +247,12 @@ function createUploadRoutes({
   // API上传接口：处理图片上传，并将图片存储在api专用目录中
   router.post('/api/upload', apiAuthenticated, upload.array('images'), async (req, res) => {
     try {
-      // 优先使用请求中指定的格式，如果没有则使用默认格式设置
       const formatOption = req.query.format || config.api.defaultFormat || 'original';
-
-      // 获取存储策略参数，支持通过API参数指定存储方式
-      // 可选值: 'r2', 'local', 'auto'(跟随全局设置)
       const storageParam = req.query.storage || req.body.storage || 'auto';
-
-      // 获取"api上传"分类ID，如果不存在则创建
-      let apiUploadCategoryId = null;
-      try {
-        apiUploadCategoryId = await imageDb.ensureApiUploadCategory();
-        console.log('API上传使用的分类ID:', apiUploadCategoryId);
-      } catch (catError) {
-        console.error('获取API上传分类失败:', catError);
-        // 继续执行，只是不会设置分类
-      }
+      // 优先使用请求中指定的相册，否则使用API默认相册配置
+      const albumId = req.body.album_id
+        ? (parseInt(req.body.album_id) || null)
+        : (config.api.defaultAlbumId || null);
 
       let resultImages = [];
       // 获取年月日文件夹路径及基本 URL
@@ -396,7 +388,7 @@ function createUploadRoutes({
           url: imageUrl,
           htmlCode: `<img src="${imageUrl}" alt="${outputFilename}" />`,
           markdownCode: `![](${imageUrl})`,
-          categoryId: apiUploadCategoryId // 设置分类为"api上传"
+          albumId: albumId
         };
 
         // 添加到图片记录
@@ -404,7 +396,7 @@ function createUploadRoutes({
 
         return {
           ...imageData,
-          uploadTime: uploadTime.toLocaleString() // 返回本地化的时间字符串
+          uploadTime: uploadTime.toLocaleString()
         };
       };
 

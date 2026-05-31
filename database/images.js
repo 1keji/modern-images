@@ -10,8 +10,8 @@ const ImagesMixin = {
       const client = await this.pool.connect();
       try {
         const insertQuery = `
-          INSERT INTO images (filename, path, upload_time, file_size, storage, format, url, html_code, markdown_code, category_id, is_animated)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          INSERT INTO images (filename, path, upload_time, file_size, storage, format, url, html_code, markdown_code, category_id, is_animated, album_id)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           RETURNING id
         `;
 
@@ -26,7 +26,8 @@ const ImagesMixin = {
           imageData.htmlCode,
           imageData.markdownCode,
           imageData.categoryId || null,
-          imageData.format === 'gif' ? true : (imageData.isAnimated || false)
+          imageData.format === 'gif' ? true : (imageData.isAnimated || false),
+          imageData.albumId || null
         ];
 
         const result = await client.query(insertQuery, values);
