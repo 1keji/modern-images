@@ -90,6 +90,22 @@ function createAlbumsRoutes({ isAuthenticated, imageDb }) {
     }
   });
 
+  // 切换相册是否显示在首页选择框
+  router.patch('/api/albums/:id/show-in-home', isAuthenticated, async (req, res) => {
+    try {
+      const albumId = parseInt(req.params.id);
+      const { show_in_home } = req.body;
+      if (typeof show_in_home !== 'boolean') {
+        return res.status(400).json({ success: false, error: 'show_in_home 必须为布尔值' });
+      }
+      const album = await imageDb.updateAlbumShowInHome(albumId, show_in_home);
+      if (!album) return res.status(404).json({ success: false, error: '相册不存在' });
+      res.json({ success: true, album });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // 设置相册封面
   router.post('/api/albums/:id/cover', isAuthenticated, async (req, res) => {
     try {

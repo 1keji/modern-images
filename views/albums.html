@@ -24,6 +24,8 @@
     .album-badge { position:absolute; top:7px; left:7px; color:#fff; border-radius:4px; font-size:.7rem; padding:2px 7px; }
     .album-badge-default { background:var(--primary-color); }
     .album-badge-system { background:var(--text-secondary); }
+    .album-badge-home { background:#16a34a; }
+    .album-badge-stack { display:flex; flex-direction:column; gap:3px; position:absolute; top:7px; left:7px; }
 
     /* ── 相册详情头 ── */
     .album-detail-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; background:var(--bg-secondary); padding:12px 16px; border-radius:var(--border-radius); border:1px solid var(--border-color); }
@@ -161,6 +163,10 @@
               <button id="setAsDefaultBtn" class="album-settings-item">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 <span id="setAsDefaultLabel">设为默认</span>
+              </button>
+              <button id="toggleShowInHomeBtn" class="album-settings-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span id="toggleShowInHomeLabel">显示在首页</span>
               </button>
               <button id="editAlbumBtn" class="album-settings-item">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -346,9 +352,17 @@
       grid.innerHTML = albums.map(a => {
         const isSystem = isUncategorized(a.id);
         const isDefault = String(a.id) === String(defaultId);
+        const showInHome = a.show_in_home !== false;
+        const badges = [];
+        if (isDefault) badges.push(`<span class="album-badge album-badge-default">默认</span>`);
+        else if (isSystem) badges.push(`<span class="album-badge album-badge-system">系统</span>`);
+        if (showInHome) badges.push(`<span class="album-badge album-badge-home">首页</span>`);
+        const badgeHtml = badges.length > 1
+          ? `<div class="album-badge-stack">${badges.join('')}</div>`
+          : badges[0] || '';
         return `
         <div class="album-card" data-id="${a.id}" title="单击打开，右键显示更多操作">
-          ${isDefault ? `<span class="album-badge album-badge-default">默认</span>` : isSystem ? `<span class="album-badge album-badge-system">系统</span>` : ''}
+          ${badgeHtml}
           ${a.cover_url ? `<div class="album-cover"><img src="${esc(a.cover_url)}" alt="" loading="lazy"></div>` : `<div class="album-cover-placeholder">🖼️</div>`}
           <div class="album-info">
             <div class="album-name" title="${esc(a.name)}">${esc(a.name)}</div>
@@ -377,6 +391,7 @@
       el('detailAlbumName').textContent = album.name;
       el('detailAlbumDesc').textContent = album.description || '';
       updateDefaultBtn();
+      updateShowInHomeBtn();
       // 系统相册隐藏删除项及其分割线
       const delBtn = el('deleteAlbumBtn');
       const delDivider = delBtn.previousElementSibling;
@@ -397,6 +412,31 @@
       const yes = String(currentAlbum?.id) === getDefaultAlbumId();
       if (label) label.textContent = yes ? '已是默认' : '设为默认';
       btn.disabled = yes;
+    }
+
+    // ── 首页显示切换 ──────────────────────────────────────────
+    async function toggleShowInHome(album) {
+      const newVal = album.show_in_home === false;
+      const r = await fetch(`/api/albums/${album.id}/show-in-home`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ show_in_home: newVal })
+      });
+      const d = await r.json();
+      if (d.success) {
+        album.show_in_home = newVal;
+        showSimpleToast(newVal ? '已加入首页选择框' : '已从首页选择框移除');
+        renderAlbumList();
+        if (currentAlbum?.id === album.id) updateShowInHomeBtn();
+      } else {
+        showSimpleToast('操作失败: ' + d.error, true);
+      }
+    }
+
+    function updateShowInHomeBtn() {
+      const label = el('toggleShowInHomeLabel');
+      if (!label || !currentAlbum) return;
+      label.textContent = currentAlbum.show_in_home !== false ? '从首页隐藏' : '显示在首页';
     }
 
     // ── 删除相册 ──────────────────────────────────────────────
@@ -698,6 +738,7 @@
       }
       const isDefault = String(album.id) === getDefaultAlbumId();
       const isSystem = isUncategorized(album.id);
+      const showInHome = album.show_in_home !== false;
       menu.innerHTML = `
         <div class="context-menu-item" data-action="open">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>打开相册
@@ -708,6 +749,9 @@
         </div>
         <div class="context-menu-item${isDefault ? ' context-menu-disabled' : ''}" data-action="setDefault">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>${isDefault ? '已是默认相册' : '设为默认相册'}
+        </div>
+        <div class="context-menu-item" data-action="toggleHome">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>${showInHome ? '从首页隐藏' : '显示在首页'}
         </div>
         ${!isSystem ? `<div class="context-menu-divider"></div><div class="context-menu-item context-menu-danger" data-action="delete"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>删除相册</div>` : ''}`;
       menu.style.cssText = `display:block;position:absolute;top:${e.pageY}px;left:${e.pageX}px;z-index:9999;`;
@@ -728,6 +772,7 @@
             renderAlbumList();
             if (currentAlbum?.id === album.id) updateDefaultBtn();
           }
+          else if (action === 'toggleHome') toggleShowInHome(album);
           else if (action === 'delete') deleteAlbum(album.id);
         });
       });
@@ -755,6 +800,7 @@
       if (menu) menu.style.display = 'none';
     });
 
+    el('toggleShowInHomeBtn').addEventListener('click', () => { if (currentAlbum) toggleShowInHome(currentAlbum); });
     el('editAlbumBtn').addEventListener('click', () => { if (currentAlbum) openEditModal(currentAlbum.id); });
     el('deleteAlbumBtn').addEventListener('click', async () => {
       if (!currentAlbum || isUncategorized(currentAlbum.id)) return;

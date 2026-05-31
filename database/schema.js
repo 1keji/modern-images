@@ -86,6 +86,11 @@ const SchemaMixin = {
       'CREATE INDEX IF NOT EXISTS idx_albums_created_at ON albums(created_at DESC)'
     ];
 
+    const addAlbumShowInHomeColumn = `
+      ALTER TABLE albums
+      ADD COLUMN IF NOT EXISTS show_in_home BOOLEAN DEFAULT true
+    `;
+
     try {
       const client = await this.pool.connect();
       try {
@@ -94,6 +99,7 @@ const SchemaMixin = {
         await client.query(addIsAnimatedColumn);
         await client.query(createAlbumsTable);
         await client.query(addAlbumIdColumn);
+        await client.query(addAlbumShowInHomeColumn);
         await client.query(addAlbumsForeignKey);
         for (const indexSql of createIndexes) {
           await client.query(indexSql);

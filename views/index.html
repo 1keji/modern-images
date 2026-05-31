@@ -154,7 +154,8 @@
           const defaultAlbumId = localStorage.getItem('defaultAlbumId') || '';
           const uncategorizedId = String(data.uncategorized_album_id || '');
           albumSelect.innerHTML = '';
-          data.albums.forEach(a => {
+          const homeAlbums = data.albums.filter(a => a.show_in_home !== false);
+          homeAlbums.forEach(a => {
             const opt = document.createElement('option');
             opt.value = a.id;
             const isUncategorized = String(a.id) === uncategorizedId;

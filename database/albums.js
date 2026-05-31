@@ -104,17 +104,30 @@ const AlbumsMixin = {
     }
   },
 
+  async updateAlbumShowInHome(id, showInHome) {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        'UPDATE albums SET show_in_home = $2, updated_at = NOW() WHERE id = $1 RETURNING id, show_in_home',
+        [id, showInHome]
+      );
+      return result.rows[0] || null;
+    } finally {
+      client.release();
+    }
+  },
+
   async getAllAlbums() {
     const client = await this.pool.connect();
     try {
       const sql = `
-        SELECT a.id, a.name, a.description, a.cover_image_id, a.created_at,
+        SELECT a.id, a.name, a.description, a.cover_image_id, a.created_at, a.show_in_home,
                COUNT(i.id)::int AS image_count,
                ci.url AS cover_url
         FROM albums a
         LEFT JOIN images i ON i.album_id = a.id
         LEFT JOIN images ci ON ci.id = a.cover_image_id
-        GROUP BY a.id, a.name, a.description, a.cover_image_id, a.created_at, ci.url
+        GROUP BY a.id, a.name, a.description, a.cover_image_id, a.created_at, a.show_in_home, ci.url
         ORDER BY a.created_at DESC
       `;
       const result = await client.query(sql);
@@ -128,14 +141,14 @@ const AlbumsMixin = {
     const client = await this.pool.connect();
     try {
       const sql = `
-        SELECT a.id, a.name, a.description, a.cover_image_id, a.created_at,
+        SELECT a.id, a.name, a.description, a.cover_image_id, a.created_at, a.show_in_home,
                COUNT(i.id)::int AS image_count,
                ci.url AS cover_url
         FROM albums a
         LEFT JOIN images i ON i.album_id = a.id
         LEFT JOIN images ci ON ci.id = a.cover_image_id
         WHERE a.id = $1
-        GROUP BY a.id, a.name, a.description, a.cover_image_id, a.created_at, ci.url
+        GROUP BY a.id, a.name, a.description, a.cover_image_id, a.created_at, a.show_in_home, ci.url
       `;
       const result = await client.query(sql, [id]);
       return result.rows[0] || null;
@@ -166,7 +179,7 @@ const AlbumsMixin = {
 
       const sql = `
         SELECT * FROM images WHERE album_id = $1
-        ORDER BY created_at DESC, id DESC
+        ORDER BY upload_time DESC, CASE WHEN SUBSTRING(filename FROM 17 FOR 3) ~ '^[0-9]+$' THEN CAST(SUBSTRING(filename FROM 17 FOR 3) AS INTEGER) ELSE 0 END ASC
         LIMIT $2 OFFSET $3
       `;
       const result = await client.query(sql, [albumId, limit, offset]);
