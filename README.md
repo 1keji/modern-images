@@ -12,7 +12,9 @@
  修改源代码后，必须重新构建镜像：
 
   docker-compose down
+  
   docker-compose build --no-cache
+  
   docker-compose up -d
 
 ---
